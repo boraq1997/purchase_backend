@@ -26,12 +26,15 @@ class RoleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->only(['name', 'guard_name']);
-        $roles = $this->service->getAll($filters);
+        $roles = $this->service->getAll($request->all());
 
         return response()->json([
             'status' => true,
             'data'   => RoleResource::collection($roles),
+            'meta'   => [
+                'current_page' => method_exists($roles, 'currentPage') ? $roles->currentPage() : 1,
+                'total'        => method_exists($roles, 'total') ? $roles->total() : $roles->count(),
+            ]
         ]);
     }
 

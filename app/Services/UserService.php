@@ -49,6 +49,32 @@ class UserService
         return $user->load(['department', 'roles', 'permissions']);
     }
 
+    public function getAvailableForDepartment(?int $departmentId = null)
+    {
+        return User::select('id', 'name', 'email', 'username')
+            ->where(function ($q) use ($departmentId) {
+                // مستخدم بلا قسم
+                $q->whereNull('department_id');
+
+                // في حالة التعديل: أظهر مستخدمي نفس القسم
+                if ($departmentId) {
+                    $q->orWhere('department_id', $departmentId);
+                }
+            })
+            ->whereNotIn('id', function ($query) use ($departmentId) {
+                $query->select('manager_user_id')
+                    ->from('departments')
+                    ->whereNotNull('manager_user_id');
+
+                // في حالة التعديل: استثناء مدير القسم الحالي
+                if ($departmentId) {
+                    $query->where('id', '!=', $departmentId);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
     /**
      * إنشاء مستخدم جديد
      */

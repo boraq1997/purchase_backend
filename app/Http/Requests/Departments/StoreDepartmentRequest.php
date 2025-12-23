@@ -16,7 +16,6 @@ class StoreDepartmentRequest extends FormRequest
     {
         return [
             'name'              => 'required|string|max:255',
-            'username'          => 'required|string|unique:departments,username|max:255',
             'code'              => 'required|string|unique:departments,code|max:50',
             'manager_user_id'   => 'nullable|exists:users,id',
             'description'       => 'nullable|string',
@@ -29,8 +28,6 @@ class StoreDepartmentRequest extends FormRequest
     {
         return [
             'name.required'             => 'the depa name is req',
-            'username.required'         => 'the depa username is req',
-            'username.unique'           => 'the depa user name is taken',
             'code.required'             => 'the depa code is req',
             'code.unique'               => 'the depa code is taken',
             'manager_user_id.exists'    => 'the depa manager is\'t exists',

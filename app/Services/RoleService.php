@@ -7,24 +7,89 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\Builder;
 
 class RoleService
 {
     /**
      * جلب جميع الأدوار مع الصلاحيات التابعة لها
      */
-    public function getAll(array $filters = [], int $perPage = 15): LengthAwarePaginator|Collection
+    public function getAll(array $filters = [], int $perPage = 15)
     {
-        $q = Role::with('permissions');
+        $q = Role::query()
+            ->with('permissions')
+            ->withCount('permissions');
 
+        /**
+         * 🔍 1. فلترة نص عامة (Global Search)
+         * ?search=admin
+         */
         if (!empty($filters['search'])) {
-            $term = '%' . $filters['search'] . '%';
-            $q->where('name', 'like', $term);
+            $search = '%' . $filters['search'] . '%';
+
+            $q->where(function (Builder $query) use ($search) {
+                $query->where('roles.name', 'like', $search)
+                    ->orWhere('roles.guard_name', 'like', $search)
+                    ->orWhereHas('permissions', function (Builder $p) use ($search) {
+                        $p->where('permissions.name', 'like', $search);
+                    });
+            });
         }
 
-        return ($filters['all'] ?? false)
-            ? $q->orderBy('name')->get()
-            : $q->orderBy('name')->paginate($perPage);
+        /**
+         * 🎯 2. فلترة متقدمة
+         */
+
+        // فلترة بالاسم
+        if (!empty($filters['name'])) {
+            $q->where('name', 'like', '%' . $filters['name'] . '%');
+        }
+
+        // فلترة بالحارس
+        if (!empty($filters['guard_name'])) {
+            $q->where('guard_name', $filters['guard_name']);
+        }
+
+        // فلترة بالصلاحيات (role يحتوي صلاحية أو أكثر)
+        // permissions[]=create-user&permissions[]=delete-user
+        if (!empty($filters['permissions']) && is_array($filters['permissions'])) {
+            $q->whereHas('permissions', function (Builder $p) use ($filters) {
+                $p->whereIn('permissions.name', $filters['permissions']);
+            });
+        }
+
+        // عدد الصلاحيات (min / max)
+        if (!empty($filters['permissions_count_min'])) {
+            $q->having('permissions_count', '>=', $filters['permissions_count_min']);
+        }
+
+        if (!empty($filters['permissions_count_max'])) {
+            $q->having('permissions_count', '<=', $filters['permissions_count_max']);
+        }
+
+        // فلترة بتاريخ الإنشاء
+        if (!empty($filters['created_from'])) {
+            $q->whereDate('created_at', '>=', $filters['created_from']);
+        }
+
+        if (!empty($filters['created_to'])) {
+            $q->whereDate('created_at', '<=', $filters['created_to']);
+        }
+
+        /**
+         * 🔃 الترتيب
+         */
+        $orderBy  = $filters['order_by']  ?? 'name';
+        $orderDir = $filters['order_dir'] ?? 'asc';
+
+        $q->orderBy($orderBy, $orderDir);
+
+        /**
+         * 📄 pagination أو all
+         */
+        return !empty($filters['all'])
+            ? $q->get()
+            : $q->paginate($filters['per_page'] ?? $perPage);
     }
 
     /**

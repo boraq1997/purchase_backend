@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function() {
     // ================= USERS =================
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index'])->middleware('permission:view-User');
+        Route::get('/available-for-department', [UserController::class, 'availableForDepartment']);
         Route::post('/', [UserController::class, 'store'])->middleware('permission:create-User');
         Route::get('/{user}', [UserController::class, 'show'])->middleware('permission:view-User');
         Route::put('/{user}', [UserController::class, 'update'])->middleware('permission:edit-User');

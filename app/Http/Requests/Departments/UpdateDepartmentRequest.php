@@ -18,7 +18,6 @@ class UpdateDepartmentRequest extends FormRequest
 
         return [
             'name'              => 'sometimes|required|string|max:255',
-            'username'          => "sometimes|required|string|max:255|unique:departments,username,{$departmentId}",
             'code'              => "sometimes|required|string|max:50|unique:departments,code,{$departmentId}",
             'manager_user_id'   => 'sometimes|nullable|exists:users,id',
             'description'       => 'sometimes|nullable|string',
@@ -33,8 +32,6 @@ class UpdateDepartmentRequest extends FormRequest
     {
         return [
             'name.required'             => 'the depa name is req',
-            'username.required'         => 'the depa username is req',
-            'username.unique'           => 'the depa user name is taken',
             'code.required'             => 'the depa code is req',
             'code.unique'               => 'the depa code is taken',
             'manager_user_id.exists'    => 'the depa manager is\'t exists',

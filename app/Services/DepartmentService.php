@@ -66,7 +66,6 @@ class DepartmentService
             // إنشاء القسم
             $department = Department::create([
                 'name'             => $data['name'],
-                'username'         => $data['username'],
                 'code'             => $data['code'],
                 'description'      => $data['description'] ?? null,
                 'manager_user_id'  => $data['manager_user_id'] ?? null,

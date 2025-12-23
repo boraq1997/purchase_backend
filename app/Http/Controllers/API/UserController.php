@@ -34,6 +34,18 @@ class UserController extends Controller
         ]);
     }
 
+    public function availableForDepartment(Request $request): JsonResponse
+    {
+        $departmentId = $request->integer('department_id');
+
+        $users = $this->service->getAvailableForDepartment($departmentId);
+
+        return response()->json([
+            'status' => true,
+            'data'   => $users,
+        ]);
+    }
+
     /**
      * إنشاء مستخدم جديد
      */
