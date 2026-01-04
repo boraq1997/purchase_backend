@@ -9,7 +9,7 @@ class UpdateEstimateRequest extends FormRequest
     public function authorize(): bool
     {
         $user = auth()->user();
-        return $user && $user->can('edit-estimate');
+        return $user && $user->can('edit-Estimate');
     }
 
     public function rules(): array
