@@ -10,14 +10,23 @@ use App\Models\Committee;
 use App\Services\CommitteeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Services\ActivityLogService;
+
 
 class CommitteeController extends Controller
 {
     protected CommitteeService $service;
+    protected ActivityLogService $activityLog;
+    
 
-    public function __construct(CommitteeService $service)
+    public function __construct(
+        CommitteeService $service,
+        ActivityLogService $activityLog
+    )
     {
         $this->service = $service;
+        $this->activityLog = $activityLog;
+
     }
 
     /**
@@ -52,7 +61,25 @@ class CommitteeController extends Controller
      */
     public function store(StoreCommitteeRequest $request): CommitteeResource
     {
-        $committee = $this->service->create($request->validated());
+        $data = $request->validated();
+        $committee = $this->service->create($data);
+
+        // =============================
+        // Log activity
+        // =============================
+        $this->activityLog->log(
+            action: 'create_committee',
+            actionLabel: 'إنشاء لجنة جديدة',
+            actorId: auth()->id(),
+            actorName: auth()->user()?->name,
+            actorType: 'User',
+            subjectType: 'Committee',
+            subjectId: $committee->id,
+            subjectIdentifier: $committee->id,
+            newValues: $committee->toArray(),
+            module: 'committees'
+        );
+
         return new CommitteeResource($committee->load(['department', 'users.department', 'manager']));
     }
 
@@ -70,7 +97,30 @@ class CommitteeController extends Controller
      */
     public function update(UpdateCommitteeRequest $request, Committee $committee): CommitteeResource
     {
-        $committee = $this->service->update($committee, $request->validated());
+        $oldValues = $committee->toArray();
+        $updatedData = $request->validated();
+        $committee = $this->service->update($committee, $updatedData);
+
+        $changedFields = array_keys(array_diff_assoc($committee->toArray(), $oldValues));
+
+        // =============================
+        // Log activity
+        // =============================
+        $this->activityLog->log(
+            action: 'update_committee',
+            actionLabel: 'تحديث بيانات اللجنة',
+            actorId: auth()->id(),
+            actorName: auth()->user()?->name,
+            actorType: 'User',
+            subjectType: 'Committee',
+            subjectId: $committee->id,
+            subjectIdentifier: $committee->id,
+            oldValues: $oldValues,
+            newValues: $committee->toArray(),
+            changedFields: $changedFields,
+            module: 'committees'
+        );
+
         return new CommitteeResource($committee->load(['department', 'users.department', 'manager']));
     }
 
@@ -79,7 +129,26 @@ class CommitteeController extends Controller
      */
     public function destroy(Committee $committee): JsonResponse
     {
+        $oldValues = $committee->toArray();
         $this->service->delete($committee);
+
+        // =============================
+        // Log activity
+        // =============================
+        $this->activityLog->log(
+            action: 'delete_committee',
+            actionLabel: 'حذف لجنة',
+            actorId: auth()->id(),
+            actorName: auth()->user()?->name,
+            actorType: 'User',
+            subjectType: 'Committee',
+            subjectId: $committee->id,
+            subjectIdentifier: $committee->id,
+            oldValues: $oldValues,
+            module: 'committees',
+            status: 'success',
+            severity: 'critical'
+        );
 
         return response()->json([
             'status'  => true,

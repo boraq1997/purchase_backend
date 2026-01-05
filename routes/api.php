@@ -15,6 +15,7 @@ use App\Http\Controllers\API\ProcurementController;
 use App\Http\Controllers\API\ProcurementItemController;
 use App\Http\Controllers\API\PurchaseRequestController;
 use App\Http\Controllers\API\VendorController;
+use App\Http\Controllers\API\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 
 // ================= LOGIN =================
@@ -26,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/activity-logs', [ActivityLogController::class, 'index']);
 
     // ================= USERS =================
     Route::prefix('users')->group(function () {
