@@ -8,15 +8,22 @@ use App\Models\PurchaseRequest;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Services\ActivityLogService;
 
 class ProcurementService
 {
+    protected ActivityLogService $logService;
+
+    public function __construct() {
+        $this->logService = new ActivityLogService();
+    }
+
     /**
      * جلب جميع عمليات الشراء مع العلاقات الضرورية
      */
     public function getAll(): Collection
     {
-        return Procurement::with([
+        return Procurement::with(relations: [
             'purchaseRequest',
             'estimate',
             'items',

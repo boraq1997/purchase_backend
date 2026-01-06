@@ -5,9 +5,17 @@ namespace App\Services;
 use App\Models\NeedsAssessment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Services\ActivityLogService;
 
 class NeedsAssessmentService
 {
+
+    protected ActivityLogService $logService;
+
+    public function __construct() {
+        $this->logService = new ActivityLogService();
+    }
+
     /**
      * جلب جميع التقييمات مع الفلترة
      */
@@ -43,7 +51,20 @@ class NeedsAssessmentService
             $q->where('admin_decision', $filters['admin_decision']);
         }
 
-        return $q->latest('id')->get();
+        $result = $q->latest('id')->get();
+
+        $this->logService->log(
+            action: 'view_needs_assessments',
+            actionLabel: 'عرض جميع تقييمات الحاجة',
+            subjectType: NeedsAssessment::class,
+            metadata: [
+                'filters' => $filters,
+                'result_count' => count($result),
+            ],
+            module: 'تقييمات الحاجة'
+        );
+
+        return $result;
     }
 
     /**
@@ -51,15 +72,25 @@ class NeedsAssessmentService
      */
     public function getById(NeedsAssessment $assessment): NeedsAssessment
     {
-        return $assessment->load([
+        $assessment = $assessment->load([
             'purchaseRequest',
             'requestItem',
             'assessedBy',
         ]);
+
+        $this->logService->log(
+            action: 'view_needs_assessment',
+            actionLabel: 'عرض تقييم حاجة محدد',
+            subjectType: NeedsAssessment::class,
+            subjectId: $assessment->id,
+            module: 'تقييمات الحاجة'
+        );
+
+        return $assessment;
     }
 
     public function getByItemAndRequest(int $purchaseRequestId, int $requestItemId): ?NeedsAssessment {
-        return NeedsAssessment::with([
+        $assessment = NeedsAssessment::with([
             'purchaseRequest',
             'requestItem',
             'assessedBy',
@@ -67,6 +98,22 @@ class NeedsAssessmentService
         ->where('purchase_request_id', $purchaseRequestId)
         ->where('request_item_id', $requestItemId)
         ->first();
+
+        if ($assessment) {
+            $this->logService->log(
+                action: 'view_needs_assessment_by_item_request',
+                actionLabel: 'عرض تقييم حاجة حسب الطلب والمادة',
+                subjectType: NeedsAssessment::class,
+                subjectId: $assessment->id,
+                metadata: [
+                    'purchase_request_id' => $purchaseRequestId,
+                    'request_item_id' => $requestItemId,
+                ],
+                module: 'تقييمات الحاجة'
+            );
+        }
+
+        return $assessment;
     }
 
     /**
@@ -97,6 +144,15 @@ class NeedsAssessmentService
                 'admin_comment'      => $data['admin_comment'] ?? null,
             ]);
 
+            $this->logService->log(
+                action: 'create_needs_assessment',
+                actionLabel: 'إنشاء تقييم حاجة جديد',
+                subjectType: NeedsAssessment::class,
+                subjectId: $assessment->id,
+                newValues: $assessment->toArray(),
+                module: 'تقييمات الحاجة'
+            );
+
             return $assessment->load([
                 'purchaseRequest',
                 'requestItem',
@@ -111,6 +167,7 @@ class NeedsAssessmentService
     public function update(NeedsAssessment $assessment, array $data): NeedsAssessment
     {
         return DB::transaction(function () use ($assessment, $data) {
+            $oldValues = $assessment->toArray();
 
             $assessment->update([
                 'purchase_request_id' => $data['purchase_request_id'] ?? $assessment->purchase_request_id,
@@ -134,6 +191,20 @@ class NeedsAssessmentService
                 'admin_comment'      => $data['admin_comment'] ?? $assessment->admin_comment,
             ]);
 
+            $newValues = $assessment->toArray();
+            $changedFields = array_keys(array_diff_assoc($newValues, $oldValues));
+
+            $this->logService->log(
+                action: 'update_needs_assessment',
+                actionLabel: 'تحديث تقييم حاجة',
+                subjectType: NeedsAssessment::class,
+                subjectId: $assessment->id,
+                oldValues: $oldValues,
+                newValues: $newValues,
+                changedFields: $changedFields,
+                module: 'تقييمات الحاجة'
+            );
+
             return $assessment->load([
                 'purchaseRequest',
                 'requestItem',
@@ -147,6 +218,21 @@ class NeedsAssessmentService
      */
     public function delete(NeedsAssessment $assessment): bool
     {
-        return DB::transaction(fn () => $assessment->delete());
+        return DB::transaction(function () use ($assessment) {
+            $oldValues = $assessment->toArray();
+            $deleted = $assessment->delete();
+
+            $this->logService->log(
+                action: 'delete_needs_assessment',
+                actionLabel: 'حذف تقييم حاجة',
+                subjectType: NeedsAssessment::class,
+                subjectId: $assessment->id,
+                oldValues: $oldValues,
+                status: $deleted ? 'success' : 'failed',
+                module: 'تقييمات الحاجة'
+            );
+
+            return $deleted;
+        });
     }
 }

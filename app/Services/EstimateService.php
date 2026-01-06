@@ -8,9 +8,17 @@ use App\Models\EstimateItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use App\Services\ActivityLogService;
 
 class EstimateService
 {
+
+    protected ActivityLogService $logService;
+
+    public function __construct() {
+        $this->logService = new ActivityLogService();
+    }
+
     /**
      * إنشاء عرض سعر بدون عناصر (حالة بسيطة)
      */
@@ -18,6 +26,15 @@ class EstimateService
     {
         return DB::transaction(function () use ($data) {
             $estimate = Estimate::create($data);
+
+            $this->logService->log(
+                action: 'create_estimate',
+                actionLabel: 'إنشاء عرض سعر',
+                subjectType: Estimate::class,
+                subjectId: $estimate->id,
+                newValues: $estimate->toArray(),
+                module: 'عروض الأسعار'
+            );
 
             return $estimate->load([
                 'vendor',
@@ -87,6 +104,19 @@ class EstimateService
                 'total_amount' => $totalAmount,
             ]);
 
+            $this->logService->log(
+                action: 'create_estimate_with_items',
+                actionLabel: 'إنشاء عرض سعر مع عناصر',
+                subjectType: Estimate::class,
+                subjectId: $estimate->id,
+                newValues: $estimate->toArray(),
+                metadata: [
+                    'purchase_request_id' => $purchaseRequestId,
+                    'items_count' => count($itemsData),
+                ],
+                module: 'عروض الأسعار'
+            );
+
             return $estimate->load([
                 'vendor',
                 'purchaseRequest',
@@ -102,7 +132,23 @@ class EstimateService
     public function update(Estimate $estimate, array $data): Estimate
     {
         return DB::transaction(function () use ($estimate, $data) {
+            $oldValues = $estimate->toArray();
+
             $estimate->update($data);
+
+            $newValues = $estimate->toArray();
+            $changedFields = array_keys(array_diff_assoc($newValues, $oldValues));
+
+            $this->logService->log(
+                action: 'update_estimate',
+                actionLabel: 'تحديث عرض سعر',
+                subjectType: Estimate::class,
+                subjectId: $estimate->id,
+                oldValues: $oldValues,
+                newValues: $newValues,
+                changedFields: $changedFields,
+                module: 'عروض الأسعار'
+            );
 
             return $estimate->load([
                 'vendor',
@@ -119,7 +165,23 @@ class EstimateService
      */
     public function delete(Estimate $estimate): bool
     {
-        return DB::transaction(fn () => $estimate->delete());
+        return DB::transaction(function () use ($estimate) {
+
+            $oldValues = $estimate->toArray();
+            $deleted = $estimate->delete();
+
+            $this->logService->log(
+                action: 'delete_estimate',
+                actionLabel: 'حذف عرض سعر',
+                subjectType: Estimate::class,
+                subjectId: $estimate->id,
+                oldValues: $oldValues,
+                status: $deleted ? 'success' : 'failed',
+                module: 'عروض الأسعار'
+            );
+
+            return $deleted;
+        });
     }
 
     /**
@@ -154,6 +216,14 @@ class EstimateService
             $q->where('status', $filters['status']);
         }
 
+        $this->logService->log(
+            action: 'view_estimates',
+            actionLabel: 'عرض جميع عروض الأسعار',
+            subjectType: Estimate::class,
+            metadata: ['filters' => $filters],
+            module: 'عروض الأسعار'
+        );
+
         return $q->latest('id');
     }
 
@@ -162,13 +232,23 @@ class EstimateService
      */
     public function getById(Estimate $estimate): Estimate
     {
-        return $estimate->load([
+        $estimate = $estimate->load([
             'vendor',
             'purchaseRequest',
             'requestItem',
             'estimateItems.requestItem',
             'creator',
         ]);
+
+        $this->logService->log(
+            action: 'view_estimate',
+            actionLabel: 'عرض عرض سعر',
+            subjectType: Estimate::class,
+            subjectId: $estimate->id,
+            module: 'عروض الأسعار'
+        );
+
+        return $estimate;
     }
 
     /**
@@ -176,14 +256,25 @@ class EstimateService
      */
     public function getByItem(int $requestItemId): ?Estimate
     {
-        return Estimate::with([
-                'vendor',
-                'purchaseRequest',
-                'estimateItems.requestItem',
-            ])
+        $estimate = Estimate::with([
+            'vendor',
+            'purchaseRequest',
+            'estimateItems.requestItem',
+        ])
             ->where('request_item_id', $requestItemId)
             ->latest()
             ->first();
+
+        $this->logService->log(
+            action: 'view_estimate_by_item',
+            actionLabel: 'عرض عرض سعر حسب المادة',
+            subjectType: Estimate::class,
+            subjectId: $estimate?->id,
+            metadata: ['request_item_id' => $requestItemId],
+            module: 'عروض الأسعار'
+        );
+
+        return $estimate;
     }
 
     /**
@@ -205,6 +296,16 @@ class EstimateService
                 'status'              => $data['status'] ?? 'pending',
                 'created_by'          => auth()->id(),
             ]);
+
+            $this->logService->log(
+                action: 'create_estimate_for_item',
+                actionLabel: 'إنشاء عرض سعر لمادة',
+                subjectType: Estimate::class,
+                subjectId: $estimate->id,
+                newValues: $estimate->toArray(),
+                metadata: ['request_item_id' => $requestItemId],
+                module: 'عروض الأسعار'
+            );
 
             return $estimate->load([
                 'vendor',
