@@ -164,10 +164,14 @@ class UserService
     public function changePassword(User $user, string $newPassword, ?string $currentPassword = null): User
     {
         if ($currentPassword !== null && !Hash::check($currentPassword, $user->password)) {
-            throw ValidationException::withMessages(['password' => 'كلمة المرور الحالية غير صحيحة.']);
+            throw ValidationException::withMessages([
+                'password' => 'كلمة المرور الحالية غير صحيحة.'
+            ]);
         }
 
-        $user->update(['password' => Hash::make($newPassword)]);
+        $user->update([
+            'password' => Hash::make($newPassword)
+        ]);
         return $user;
     }
 

@@ -27,7 +27,6 @@ class DatabaseSeeder extends Seeder
         $itDepartment = Department::firstOrCreate([
             'name' => 'IT Department',
         ], [
-            'username' => 'it_dept',
             'code' => 'IT01',
             'description' => 'Handles all tech-related operations',
         ]);
@@ -35,7 +34,6 @@ class DatabaseSeeder extends Seeder
         $hrDepartment = Department::firstOrCreate([
             'name' => 'HR Department',
         ], [
-            'username' => 'hr_dept',
             'code' => 'HR01',
             'description' => 'Responsible for human resources',
         ]);

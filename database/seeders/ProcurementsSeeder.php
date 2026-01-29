@@ -39,7 +39,7 @@ class ProcurementsSeeder extends Seeder
             [
                 'quantity' => 5,
                 'unit_price' => 850,
-                'unit' => 'قطعة',
+                'unit' => 'piece',
                 'difference' => 0,
                 'notes' => 'تم استلام الأجهزة كاملة.',
             ]
@@ -53,7 +53,7 @@ class ProcurementsSeeder extends Seeder
             [
                 'quantity' => 5,
                 'unit_price' => 100,
-                'unit' => 'قطعة',
+                'unit' => 'piece',
                 'difference' => 0,
                 'notes' => 'تم استلام الشاشات كاملة.',
             ]

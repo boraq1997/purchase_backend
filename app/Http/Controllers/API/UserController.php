@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Requests\User\UpdateUserPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\UserService;
@@ -84,5 +85,21 @@ class UserController extends Controller
             'status'  => true,
             'message' => 'User deleted successfully',
         ]);
+    }
+
+    public function updateUserPassword(UpdateUserPasswordRequest $request, User $user): JsonResponse {
+        $user = $request->user();
+
+        $this->service->changePassword(
+            user: $user, 
+            newPassword: $request->new_password,
+            currentPassword: $request->old_password,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "تم تغيير كلمة المرور بنجاح"
+        ], 200);  
+
     }
 }

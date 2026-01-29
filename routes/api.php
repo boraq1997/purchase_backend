@@ -17,10 +17,10 @@ use App\Http\Controllers\API\PurchaseRequestController;
 use App\Http\Controllers\API\VendorController;
 use App\Http\Controllers\API\ActivityLogController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\API\DashboardController;
 
 // ================= LOGIN =================
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-
 Route::middleware('auth:sanctum')->group(function() {
 
     // ================= AUTH INFO =================
@@ -28,6 +28,8 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+    Route::post('/change-password', [UserController::class, 'updateUserPassword']);
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
 
     // ================= USERS =================
     Route::prefix('users')->group(function () {

@@ -14,7 +14,6 @@ return new class extends Migration
             $table->foreignId('request_item_id')->nullable();
             $table->foreignId('estimate_item_id')->nullable();
             $table->string('item_name');
-            $table->string('unit')->nullable();
             $table->enum('unit', [
                 'piece',     // قطعة
                 'box',       // صندوق
