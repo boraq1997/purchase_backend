@@ -12,13 +12,18 @@ class StorePurchaseRequest extends FormRequest
         return $user && $user->can('create-PurchaseRequest');
     }
 
+    protected function prepareForValidation() {
+        $this->merge([
+            'user_id' => auth()->id(),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
             'title'           => 'required|string|max:255',
             'description'     => 'nullable|string',
             'department_id'   => 'required|exists:departments,id',
-            'user_id'         => 'required|exists:users,id',
             'priority'        => 'nullable|in:low,medium,high',
             'status'          => 'nullable|in:pending,approved,rejected,completed',
             'items'           => 'nullable|array',

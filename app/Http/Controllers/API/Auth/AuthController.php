@@ -8,71 +8,31 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Http\Requests\auth\LoginRequest;
+use App\Services\AuthService;
 
 class AuthController extends Controller
 {
 
     protected ActivityLogService $activityLog;
+    protected AuthService $authService;
 
-    public function __construct(ActivityLogService $activityLog) {
+    public function __construct(
+        ActivityLogService $activityLog,
+        AuthService $service
+        ) {
         $this->activityLog = $activityLog;
+        $this->authService = $service;
     }
 
     /**
      * تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $data = $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string|min:4',
-        ]);
-
-        $user = User::where('username', $data['username'])->first();
-
-        if (!$user || !Hash::check($data['password'], $user->password)) {
-            $this->activityLog->log(
-                action: 'login',
-                actionLabel: 'محاولة تسجيل دخول فاشلة',
-                actorType: 'Gust',
-                status: 'failed',
-                severity: 'warning',
-                module: 'auth',
-                metadata: [
-                    'username' => $data['username'],
-                ]
-            );
-
-            return response()->json([
-                'message' => 'Invalid username or password'
-            ], 401);
-        }
-
-        // حذف التوكنات القديمة (اختياري)
-        $user->tokens()->delete();
-
-        $token = $user->createToken('api_token')->plainTextToken;
-
-        $this->activityLog->log(
-            action: 'login',
-            actionLabel: 'تسجيل دخول ناجح',
-            actorId: $user->id,
-            actorName: $user->name ?? $user->username,
-            actorType: 'User',
-            subjectType: 'User',
-            subjectId: $user->id,
-            subjectIdentifier: $user->username,
-            module: 'auth',
-            metadata: [
-                'login_method' => 'username_password'
-            ]
-        );
-
-        return response()->json([
-            'message' => 'Login successful',
-            'user'    => new UserResource($user->load(['roles', 'permissions', 'department', 'committees.manager', 'committees.department', 'parent'])),
-            'token'   => $token,
-        ]);
+        $data = $request->validated();
+        $user = $this->authService->login($data);
+        return $user;
     }
 
     /**
@@ -81,24 +41,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $user = $request->user();
-
-        $this->activityLog->log(
-            action: 'logout',
-            actionLabel: 'تسجيل خروج',
-            actorId: $user->id,
-            actorName: $user->name ?? $user->username,
-            actorType: 'User',
-            subjectType: 'User',
-            subjectId: $user->id,
-            subjectIdentifier: $user->username,
-            module: 'auth'
-        );
-
-        $user->currentAccessToken()->delete();
-
-        return response()->json([
-            'message' => 'Logged out successfully'
-        ]);
+        return $this->authService->logout($user);
     }
 
     /**
@@ -106,7 +49,7 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user = $request->user();
+        $user = $this->authService->me();
 
         $this->activityLog->log(
             action: 'view_profile',
@@ -117,9 +60,10 @@ class AuthController extends Controller
             subjectId: $user->id,
             module: 'auth'
         );
-        return response()->json(
-            $request->user()->load(['roles', 'permissions'])
-        );
+        return response()->json([
+            "success" => true,
+            "data" => $user,
+        ]);
     }
 
     /**
