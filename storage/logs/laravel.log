@@ -20664,3 +20664,19 @@ Did you mean one of these?
 #40 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('/Users/boraqnez...')
 #41 {main}
 "} 
+[2026-02-03 08:29:32] local.ERROR: The "--host0.0.0.0" option does not exist. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\RuntimeException(code: 0): The \"--host0.0.0.0\" option does not exist. at /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Input/ArgvInput.php:226)
+[stacktrace]
+#0 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Input/ArgvInput.php(155): Symfony\\Component\\Console\\Input\\ArgvInput->addLongOption('host0.0.0.0', NULL)
+#1 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Input/ArgvInput.php(88): Symfony\\Component\\Console\\Input\\ArgvInput->parseLongOption('--host0.0.0.0')
+#2 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Input/ArgvInput.php(77): Symfony\\Component\\Console\\Input\\ArgvInput->parseToken('--host0.0.0.0', true)
+#3 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Input/Input.php(53): Symfony\\Component\\Console\\Input\\ArgvInput->parse()
+#4 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Command/Command.php(295): Symfony\\Component\\Console\\Input\\Input->bind(Object(Symfony\\Component\\Console\\Input\\InputDefinition))
+#5 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/laravel/framework/src/Illuminate/Console/Command.php(180): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#6 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Application.php(1102): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#7 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Foundation\\Console\\ServeCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#8 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#9 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(197): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#10 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#11 /Users/boraqnezar/Desktop/PRIVATE_SECURE_PROJECT_AREA/Purchases/back/artisan(16): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#12 {main}
+"} 

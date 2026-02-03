@@ -9,7 +9,7 @@ return [
     'allowed_origins' => [
         'http://localhost:5173',
         'http://127.0.0.1:5173',
-        'http://10.55.3.155:5173', // IP جهاز Vue
+        'http://10.55.3.22:5173', // IP جهاز Vue
         
     ],
 
