@@ -24,6 +24,7 @@ class PermissionsSeeder extends Seeder
             'Procurement',
             'ProcurementItem',
             'Vendors',
+            'ActivityLogs',
         ];
 
         $actions = ['view', 'create', 'edit', 'delete'];

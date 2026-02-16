@@ -8,8 +8,8 @@
         <th>التوصية</th>
         <th>ملاحظات</th>
     </tr>
-    @foreach($request->items as $item)
-    @php $wc = $item->requestItem->warehouseCheck @endphp
+    @foreach($purchaseRequest->items as $item)
+    @php $wc = $item->warehouseCheck @endphp
     <tr>
         <td>{{ $item->requestItem->item_name }}</td>
         <td>{{ $wc?->availability == 'available' ? 'متوفر' : 'غير متوفر' }}</td>
@@ -34,8 +34,8 @@
         <th>المواصفات المعدلة</th>
         <th>السبب</th>
     </tr>
-    @foreach($request->items as $item)
-    @php $na = $item->requestItem->needsAssessment @endphp
+    @foreach($purchaseRequest->items as $item)
+    @php $na = $item->needsAssessment @endphp
     <tr>
         <td>{{ $item->requestItem->item_name }}</td>
         <td>

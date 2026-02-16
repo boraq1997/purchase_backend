@@ -27,7 +27,7 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+    Route::get('/activity-logs', [ActivityLogController::class, 'index']);//->middleware('permission:view-ActivityLogs');
     Route::post('/change-password', [UserController::class, 'updateUserPassword']);
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
 
@@ -151,6 +151,8 @@ Route::middleware('auth:sanctum')->group(function() {
         Route::put('/{report}', [ReportController::class, 'update'])->middleware('permission:edit-Report');
         Route::delete('/{report}', [ReportController::class, 'destroy'])->middleware('permission:delete-Report');
     });
+
+    Route::get('reportGene/{purchaseRequestId}', [ReportController::class, 'generate']);
 
     // ================= PROCUREMENTS =================
     Route::prefix('procurements')->group(function () {
