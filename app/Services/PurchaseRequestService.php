@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Models\RequestItem;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class PurchaseRequestService
 {
@@ -26,6 +28,7 @@ class PurchaseRequestService
             'needsAssessments',
             'report',
             'statusActor',
+            'images',
         ]);
 
         if (!empty($filters['search'])) {
@@ -77,6 +80,7 @@ class PurchaseRequestService
             'needsAssessments',
             'report',
             'statusActor',
+            'images'
         ]);
     }
 
@@ -104,7 +108,27 @@ class PurchaseRequestService
                 }
             }
 
-            return $purchaseRequest->load(['department', 'creator', 'items']);
+            if (!empty($data['images']) && is_array($data['images'])) {
+                foreach($data['images'] as $image) {
+                    $fileName = \Str::uuid() . '.' . $image->getClientOriginExtension();
+
+                    $path = $image->storeAs(
+                        "purchase_requests/{$purchaseRequest->id}",
+                        $fileName,
+                        'public'
+                    );
+
+                    $purchaseRequest->images()->create([
+                        'file_name' => $fileName,
+                        'file_path' => $path,
+                        'file_type' => $image->getClientMomeType(),
+                        'file_size' => $image->getSize(),
+                        'uploaded_by' => auth()->id(),
+                    ]);
+                }
+            }
+
+            return $purchaseRequest->load(['department', 'creator', 'items', 'images']);
         });
     }
 
@@ -124,21 +148,17 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
             'department_id' => $data['department_id'] ?? $purchaseRequest->department_id,
         ]);
 
-        // ===== التعامل مع المواد =====
         if (isset($data['items']) && is_array($data['items'])) {
 
-            // كل المواد الموجودة في قاعدة البيانات مع العلاقات
             $existingItems = $purchaseRequest->items()
                 ->with(['needsAssessment', 'warehouseCheck'])
                 ->get();
 
             $existingItemIds = $existingItems->pluck('id')->toArray();
 
-            // الـ IDs القادمة من الطلب (المواد التي بقيت أو تم تعديلها)
             $sentItems    = collect($data['items']);
             $sentItemIds  = $sentItems->pluck('id')->filter()->toArray(); // فقط اللي فيها id
 
-            // المواد المحمية (اللي عليها تقييم أو فحص مستودع)
             $protectedItemIds = $existingItems->filter(function ($item) {
                 return $item->needsAssessment()->exists() || $item->warehouseCheck()->exists();
             })->pluck('id')->toArray();
@@ -146,7 +166,6 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
             // المواد التي "اختفت" من الطلب (يعني يريد يحذفها)
             $missingItemIds = array_diff($existingItemIds, $sentItemIds);
 
-            // لو حاول يحذف مادة عليها تقييم/فحص → نمنع العملية ونرجع خطأ
             $protectedMissing = array_intersect($missingItemIds, $protectedItemIds);
             if (!empty($protectedMissing)) {
                 throw ValidationException::withMessages([
@@ -154,30 +173,22 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
                 ]);
             }
 
-            // المواد التي يُسمح بحذفها فعلاً (لا تقييم ولا فحص)
             $idsToDelete = array_diff($missingItemIds, $protectedItemIds);
             if (!empty($idsToDelete)) {
                 RequestItem::whereIn('id', $idsToDelete)->delete();
             }
 
-            // تحديث/إنشاء المواد
             foreach ($data['items'] as $itemData) {
 
-                // ===== حالة: مادة موجودة (لديها id) =====
                 if (!empty($itemData['id'])) {
                     /** @var RequestItem|null $itemModel */
                     $itemModel = $existingItems->firstWhere('id', $itemData['id']);
 
                     if (!$itemModel) {
-                        continue; // احتياطاً
+                        continue;
                     }
 
-                    // المادة عليها تقييم/فحص → ممنوع تعديلها
                     if ($itemModel->needsAssessment()->exists() || $itemModel->warehouseCheck()->exists()) {
-                        // خيار 1: تجاهل تعديلها بصمت
-                        // continue;
-
-                        // خيار 2: إرجاع خطأ للمستخدم (أوضح للفرونت إند)
                         throw ValidationException::withMessages([
                             'items' => 'لا يمكن تعديل مادة لديها تقييم حاجة أو فحص مستودع.'
                         ]);
@@ -203,6 +214,28 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
                     ]);
                 }
             }
+
+            if (!empty($data['images']) && is_array($data['images'])) {
+
+                foreach ($data['images'] as $image) {
+
+                    $fileName = \Str::uuid() . '.' . $image->getClientOriginalExtension();
+
+                    $path = $image->storeAs(
+                        "purchase_requests/{$purchaseRequest->id}",
+                        $fileName,
+                        'public'
+                    );
+
+                    $purchaseRequest->images()->create([
+                        'file_name'   => $fileName,
+                        'file_path'   => $path,
+                        'file_type'   => $image->getClientMimeType(),
+                        'file_size'   => $image->getSize(),
+                        'uploaded_by' => auth()->id(),
+                    ]);
+                }
+            }
         }
 
         // تحديث الحالة إن وُجدت تقديرات والطلب مازال draft
@@ -213,7 +246,7 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
             $purchaseRequest->update(['status_type' => 'pending']);
         }
 
-        return $purchaseRequest->load(['department', 'creator', 'items']);
+        return $purchaseRequest->load(['department', 'creator', 'items', 'images']);
     });
 }
 
@@ -223,7 +256,14 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
     public function delete(PurchaseRequest $purchaseRequest): bool
     {
         return DB::transaction(function () use ($purchaseRequest) {
+
+            foreach ($purchaseRequest->images as $image) {
+                \Storage::disk('public')->delete($image->file_path);
+            }
+
+            $purchaseRequest->images()->delete();
             $purchaseRequest->items()->delete();
+
             return $purchaseRequest->delete();
         });
     }

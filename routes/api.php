@@ -18,6 +18,7 @@ use App\Http\Controllers\API\VendorController;
 use App\Http\Controllers\API\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\DashboardController;
+use App\Http\Controllers\API\PurchaseRequestImageController;
 
 // ================= LOGIN =================
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -121,6 +122,12 @@ Route::middleware('auth:sanctum')->group(function() {
         Route::patch('/{purchaseRequest}/status', [PurchaseRequestController::class, 'updateStatus'])->middleware('permission:approve-purchase-request');
     });
 
+    Route::post('purchase-requests/images', [PurchaseRequestImageController::class, 'store']);
+    Route::delete('purchase-request-images/{image}', [PurchaseRequestImageController::class, 'destroy']);
+    Route::get('purchase-requests/{id}/images', [PurchaseRequestImageController::class, 'indexByPurchaseRequest']);
+    Route::get('purchase-request-images/{id}', [PurchaseRequestImageController::class, 'show']);
+
+    
     // ================= WAREHOUSE CHECKS =================
     Route::prefix('warehouse-checks')->group(function () {
         Route::get('/', [WarehouseCheckController::class, 'index'])->middleware('permission:view-WarehouseCheck');

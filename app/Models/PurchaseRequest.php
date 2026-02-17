@@ -90,6 +90,10 @@ class PurchaseRequest extends Model
         return $this->hasOne(Report::class);
     }
 
+    public function images() {
+        return $this->hasMany(PurchaseRequestImage::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | الأحداث (Events)

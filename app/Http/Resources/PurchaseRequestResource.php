@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\NeedsAssessmentResource;
+use App\Http\Resources\PurchaseRequestImageResource;
 
 class PurchaseRequestResource extends JsonResource
 {
@@ -85,20 +86,20 @@ class PurchaseRequestResource extends JsonResource
                                 'total_price'    => $ei->total_price,
                                 'notes'          => $ei->notes,
                                 'estimate' => $ei->estimate ? [
-    'id'        => $ei->estimate->id,
-    'vendor'    => $ei->estimate->vendor ? [
-        'id'      => $ei->estimate->vendor->id,
-        'name'    => $ei->estimate->vendor->name,
-        'phone1'  => $ei->estimate->vendor->phone1,
-        'phone2'  => $ei->estimate->vendor->phone2,
-        'email'   => $ei->estimate->vendor->email,
-        'address' => $ei->estimate->vendor->address,
-    ] : null,
-    'estimate_date' => $ei->estimate->estimate_date,
-    'total_amount'  => $ei->estimate->total_amount,
-    'status'        => $ei->estimate->status,
-    'notes'         => $ei->estimate->notes,
-] : null,
+                                    'id'        => $ei->estimate->id,
+                                    'vendor'    => $ei->estimate->vendor ? [
+                                        'id'      => $ei->estimate->vendor->id,
+                                        'name'    => $ei->estimate->vendor->name,
+                                        'phone1'  => $ei->estimate->vendor->phone1,
+                                        'phone2'  => $ei->estimate->vendor->phone2,
+                                        'email'   => $ei->estimate->vendor->email,
+                                        'address' => $ei->estimate->vendor->address,
+                                    ] : null,
+                                    'estimate_date' => $ei->estimate->estimate_date,
+                                    'total_amount'  => $ei->estimate->total_amount,
+                                    'status'        => $ei->estimate->status,
+                                    'notes'         => $ei->estimate->notes,
+                                ] : null,
                             ];
                         }),
                     ];
@@ -109,25 +110,25 @@ class PurchaseRequestResource extends JsonResource
             // علاقات ثانوية خارج الـ items
             // =======================
             'estimates' => $this->whenLoaded('estimates', function() {
-    return $this->estimates->map(function($est) {
-        return [
-            'id' => $est->id,
-            'vendor_id' => $est->vendor_id,
-            'vendor' => $est->vendor ? [
-                'id'      => $est->vendor->id,
-                'name'    => $est->vendor->name,
-                'phone1'  => $est->vendor->phone1,
-                'phone2'  => $est->vendor->phone2,
-                'email'   => $est->vendor->email,
-                'address' => $est->vendor->address,
-            ] : null,
-            'estimate_date' => $est->estimate_date?->toIso8601String(),
-            'total_amount'  => $est->total_amount,
-            'status'        => $est->status,
-            'notes'         => $est->notes,
-        ];
-    });
-}),
+                return $this->estimates->map(function($est) {
+                    return [
+                        'id' => $est->id,
+                        'vendor_id' => $est->vendor_id,
+                        'vendor' => $est->vendor ? [
+                            'id'      => $est->vendor->id,
+                            'name'    => $est->vendor->name,
+                            'phone1'  => $est->vendor->phone1,
+                            'phone2'  => $est->vendor->phone2,
+                            'email'   => $est->vendor->email,
+                            'address' => $est->vendor->address,
+                        ] : null,
+                        'estimate_date' => $est->estimate_date?->toIso8601String(),
+                        'total_amount'  => $est->total_amount,
+                        'status'        => $est->status,
+                        'notes'         => $est->notes,
+                    ];
+                });
+            }),
 
             'procurements' => $this->whenLoaded('procurements', fn() =>
                 $this->procurements->map(fn($proc) => [
@@ -162,7 +163,7 @@ class PurchaseRequestResource extends JsonResource
                 'summary'           => $this->report->summary,
                 'recommendations'   => $this->report->recommendations,
             ]),
-
+            'images' => PurchaseRequestImageResource::collection($this->whenLoaded('images')),
             // =======================
             // Timestamps
             // =======================

@@ -9,14 +9,17 @@ use App\Http\Resources\PurchaseRequestResource;
 use App\Models\PurchaseRequest;
 use App\Services\PurchaseRequestService;
 use Illuminate\Http\Request;
+use App\Services\PurchaseRequestImageService;
 
 class PurchaseRequestController extends Controller
 {
     protected PurchaseRequestService $service;
+    protected PurchaseRequestImageService $imageService;
 
-    public function __construct(PurchaseRequestService $service)
+    public function __construct(PurchaseRequestService $service, PurchaseRequestImageService $imageService)
     {
         $this->service = $service;
+        $this->imageService = $imageService;
     }
 
     /**
@@ -37,14 +40,17 @@ class PurchaseRequestController extends Controller
         return PurchaseRequestResource::collection($requests);
     }
 
-    /**
-     * إنشاء طلب شراء جديد
-     */
     public function store(StorePurchaseRequest $request)
     {
         $purchaseRequest = $this->service->create($request->validated());
-        return new PurchaseRequestResource($purchaseRequest->load(['creator', 'department']));
+
+        if ($request->hasFile('images')) {
+            $this->imageService->uploadImages($purchaseRequest, $request->file('images'));
+        }
+
+        return new PurchaseRequestResource($purchaseRequest->fresh()->load(['creator', 'department', 'items', 'images']));
     }
+
 
     /**
      * عرض تفاصيل طلب شراء محدد
@@ -55,13 +61,14 @@ class PurchaseRequestController extends Controller
         return new PurchaseRequestResource($purchaseRequest);
     }
 
-    /**
-     * تحديث طلب شراء محدد
-     */
     public function update(UpdatePurchaseRequest $request, PurchaseRequest $purchaseRequest)
     {
-        $purchaseRequest = $this->service->update($purchaseRequest, $request->validated());
-        return new PurchaseRequestResource($purchaseRequest->load(['creator', 'department']));
+        $updatedPurchaseRequest = $this->service->update($purchaseRequest, $request->validated());
+
+        if ($request->hasFile('images')) {
+            $this->imageService->uploadImages($updatedPurchaseRequest, $request->file('images'));
+        }
+        return new PurchaseRequestResource($updatedPurchaseRequest->fresh()->load(['creator', 'department', 'items', 'images']));
     }
 
     /**
