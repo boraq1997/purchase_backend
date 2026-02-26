@@ -19,7 +19,7 @@ class StoreRequestItemRequest extends FormRequest
             'name'                => 'required|string|max:255',
             'description'         => 'nullable|string|max:500',
             'quantity'            => 'required|integer|min:1',
-            'unit'                => 'nullable|string|max:50',
+            'unit_id'               => 'nullable|exists:units,id',
             'estimated_price'     => 'nullable|numeric|min:0',
             'notes'               => 'nullable|string|max:500',
         ];
@@ -33,7 +33,7 @@ class StoreRequestItemRequest extends FormRequest
             'name.required'                => 'item name is required',
             'quantity.required'            => 'quantity is required',
             'quantity.integer'             => 'quantity must be a valid number',
-            'unit.max'                     => 'unit name is too long',
+            'unit_id.exists'               => 'الوحدة المختارة غير موجودة',
         ];
     }
 }

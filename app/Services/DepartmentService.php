@@ -110,7 +110,6 @@ class DepartmentService
     public function create(array $data): Department
     {
         return DB::transaction(function () use ($data) {
-            // إنشاء القسم
             $department = Department::create([
                 'name'             => $data['name'],
                 'code'             => $data['code'],
@@ -118,7 +117,6 @@ class DepartmentService
                 'manager_user_id'  => $data['manager_user_id'] ?? null,
             ]);
 
-            // ربط المستخدمين (إذا كان الحقل موجود ومعبأ)
             if (array_key_exists('users', $data)) {
 
                 if (!empty($data['users'])) {

@@ -19,6 +19,7 @@ use App\Http\Controllers\API\ActivityLogController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\PurchaseRequestImageController;
+use App\Http\Controllers\API\UnitController;
 
 // ================= LOGIN =================
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -177,5 +178,12 @@ Route::middleware('auth:sanctum')->group(function() {
         Route::post('/', [ProcurementItemController::class, 'store'])->middleware('permission:create-ProcurementItem');
         Route::put('/{item}', [ProcurementItemController::class, 'update'])->middleware('permission:edit-ProcurementItem');
         Route::delete('/{item}', [ProcurementItemController::class, 'destroy'])->middleware('permission:delete-ProcurementItem');
+    });
+
+    Route::prefix('units')->group(function() {
+        Route::get('/', [UnitController::class, 'index']);
+        Route::post('/', [UnitController::class, 'store']);
+        Route::put('/{unit}', [UnitController::class, 'update']);
+        Route::delete('/{unit}', [UnitController::class, 'destroy']);
     });
 });

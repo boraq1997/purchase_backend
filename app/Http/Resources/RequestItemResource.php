@@ -19,7 +19,13 @@ class RequestItemResource extends JsonResource
             'item_name'           => $this->item_name,
             'description'         => $this->description,
             'quantity'            => $this->quantity,
-            'unit'                => $this->unit,
+            'unit' => $this->whenLoaded('unit', function () {
+                return [
+                    'id'   => $this->unit->id,
+                    'name' => $this->unit->name,
+                    'code' => $this->unit->code,
+                ];
+            }),
             'unit_price'          => $this->unit_price,
             'total'               => $this->total,
 

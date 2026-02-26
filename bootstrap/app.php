@@ -13,10 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
-        // ✅ CORS
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
 
-        // aliases
         $middleware->alias([
             'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);

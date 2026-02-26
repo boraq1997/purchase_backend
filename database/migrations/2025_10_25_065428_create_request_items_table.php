@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('item_name');
             $table->string('specifications')->nullable();
             $table->integer('quantity')->default(1);
-            $table->string('unit')->nullable();
+            $table->foreignId('unit_id')->nullable();
             $table->decimal('estimated_unit_price', 12, 2)->nullable();
             $table->decimal('total_estimated_price', 14, 2)->nullable();
             $table->foreignId('created_by')->nullable();

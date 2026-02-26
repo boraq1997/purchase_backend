@@ -19,7 +19,7 @@ class UpdateRequestItemRequest extends FormRequest
             'name'                => 'sometimes|required|string|max:255',
             'description'         => 'nullable|string|max:500',
             'quantity'            => 'sometimes|required|integer|min:1',
-            'unit'                => 'nullable|string|max:50',
+            'unit_id'             => 'nullable|exists:units,id',
             'estimated_price'     => 'nullable|numeric|min:0',
             'notes'               => 'nullable|string|max:500',
         ];
@@ -31,6 +31,7 @@ class UpdateRequestItemRequest extends FormRequest
             'purchase_request_id.exists'   => 'purchase request not found',
             'name.required'                => 'item name is required',
             'quantity.required'            => 'quantity is required',
+            'unit_id.exists'               => 'الوحدة المختارة غير موجودة',
             'quantity.integer'             => 'quantity must be a number',
         ];
     }

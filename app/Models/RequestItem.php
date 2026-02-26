@@ -15,7 +15,7 @@ class RequestItem extends Model
         'purchase_request_id',
         'item_name',
         'quantity',
-        'unit',
+        'unit_id',
         'estimated_unit_price',
         'total_estimated_price',
     ];
@@ -35,6 +35,10 @@ class RequestItem extends Model
     public function purchaseRequest()
     {
         return $this->belongsTo(PurchaseRequest::class);
+    }
+
+    public function unit() {
+        return $this->belongsTo(Unit::class);
     }
 
     public function warehouseCheck(): HasOne

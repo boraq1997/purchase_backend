@@ -78,7 +78,7 @@ class AuthService
     /**
      * إرجاع بيانات المستخدم الحالي
      */
-    public function me(): User
+    public function me()
     {
         $user = auth()->user();
 

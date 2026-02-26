@@ -48,6 +48,7 @@ return new class extends Migration
         Schema::table('request_items', function (Blueprint $table) {
             $table->foreign('purchase_request_id')->references('id')->on('purchase_requests')->cascadeOnDelete();
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
+            $table->foreign('unit_id')->references('id')->on('units')->nullOnDelete();
         });
 
         /** estimates */

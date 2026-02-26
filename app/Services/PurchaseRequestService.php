@@ -29,6 +29,7 @@ class PurchaseRequestService
             'report',
             'statusActor',
             'images',
+            'unit',
         ]);
 
         if (!empty($filters['search'])) {

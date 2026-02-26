@@ -33,6 +33,14 @@ class UserResource extends JsonResource
 
             // الأدوار والصلاحيات
             'role' => $this->whenLoaded('roles', fn() => $this->getRoleNames()->first()),
+            'roles' => $this->whenLoaded('roles', function() {
+                return $this->roles->map(fn($role) => [
+                    'name' => $role->name,
+                    'guard_name' => $role->guard_name,
+                    'created_at' => $role->created_at,
+                    'updated_at' => $role->updated_at,
+                ]);
+            }),
             'permissions'   => $this->whenLoaded('permissions', fn() => $this->getAllPermissions()->pluck('name')),
 
             // اللجان المرتبطة بالمستخدم
