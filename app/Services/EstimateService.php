@@ -134,10 +134,51 @@ class EstimateService
         return DB::transaction(function () use ($estimate, $data) {
             $oldValues = $estimate->toArray();
 
+            // ── 1. استخرج الـ items وأزلها من بيانات الـ estimate
+            $itemsData = $data['items'] ?? null;
+            unset($data['items']);
+
+            // ── 2. حدّث بيانات الـ estimate الأساسية
             $estimate->update($data);
 
-            $newValues = $estimate->toArray();
-            $changedFields = array_keys(array_diff_assoc($newValues, $oldValues));
+            // ── 3. sync جدول estimate_items
+            if ($itemsData !== null) {
+
+                // IDs المواد القادمة من الـ Frontend
+                $incomingRequestItemIds = collect($itemsData)
+                    ->pluck('request_item_id')
+                    ->filter()
+                    ->toArray();
+
+                // احذف المواد التي أُزيلت من القائمة
+                $estimate->estimateItems()
+                    ->whereNotIn('request_item_id', $incomingRequestItemIds)
+                    ->delete();
+
+                // حدّث أو أضف كل مادة
+                foreach ($itemsData as $itemData) {
+                    $quantity  = $itemData['quantity'] ?? 1;
+                    $unitPrice = $itemData['unit_price'] ?? 0;
+
+                    $estimate->estimateItems()->updateOrCreate(
+                        [
+                            'request_item_id' => $itemData['request_item_id'],
+                        ],
+                        [
+                            'item_name'   => $itemData['item_name'] ?? null,
+                            'quantity'    => $quantity,
+                            'unit_price'  => $unitPrice,
+                            'total_price' => $quantity * $unitPrice,
+                            'notes'       => $itemData['notes'] ?? null,
+                        ]
+                    );
+                }
+
+                // أعد حساب المجموع الكلي
+                $estimate->update([
+                    'total_amount' => $estimate->estimateItems()->sum('total_price'),
+                ]);
+            }
 
             $this->logService->log(
                 action: 'update_estimate',
@@ -145,8 +186,7 @@ class EstimateService
                 subjectType: Estimate::class,
                 subjectId: $estimate->id,
                 oldValues: $oldValues,
-                newValues: $newValues,
-                changedFields: $changedFields,
+                newValues: $estimate->fresh()->toArray(),
                 module: 'عروض الأسعار'
             );
 

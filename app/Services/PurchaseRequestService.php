@@ -21,6 +21,7 @@ class PurchaseRequestService
             'department',
             'committee',
             'creator',
+            'items.unit',
             'items.estimateItems.estimate',
             'estimates',
             'procurements',
@@ -29,7 +30,6 @@ class PurchaseRequestService
             'report',
             'statusActor',
             'images',
-            'unit',
         ]);
 
         if (!empty($filters['search'])) {
@@ -199,7 +199,7 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
                     $itemModel->update([
                         'item_name'             => $itemData['item_name'] ?? $itemModel->item_name,
                         'quantity'              => $itemData['quantity']  ?? $itemModel->quantity,
-                        'unit'                  => $itemData['unit']      ?? $itemModel->unit,
+                        'unit_id'              => $itemData['unit']      ?? $itemModel->unit_id,
                         'specifications'        => $itemData['specifications'] ?? $itemModel->specifications,
                         'estimated_unit_price'  => $itemData['estimated_unit_price'] ?? $itemModel->estimated_unit_price,
                     ]);
@@ -209,7 +209,7 @@ public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseR
                     $purchaseRequest->items()->create([
                         'item_name'             => $itemData['item_name'],
                         'quantity'              => $itemData['quantity']  ?? 1,
-                        'unit'                  => $itemData['unit']      ?? null,
+                        'unit_id'               => $itemData['unit'] ?? null,
                         'specifications'        => $itemData['specifications'] ?? null,
                         'estimated_unit_price'  => $itemData['estimated_unit_price'] ?? null,
                     ]);

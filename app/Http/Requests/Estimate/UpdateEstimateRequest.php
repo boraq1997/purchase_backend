@@ -28,9 +28,11 @@ class UpdateEstimateRequest extends FormRequest
             'items'                       => 'nullable|array',
             'items.*.id'                  => 'nullable|exists:estimate_items,id',
             'items.*.request_item_id'     => 'required_with:items|exists:request_items,id',
+            'items.*.item_name'           => 'nullable|string|max:255',
             'items.*.unit_price'          => 'required_with:items|numeric|min:0',
             'items.*.quantity'            => 'required_with:items|numeric|min:1',
             'items.*.total_price'         => 'nullable|numeric|min:0',
+            'items.*.notes'               => 'nullable|string|max:500',
         ];
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Unit;
+namespace App\Http\Requests\Units;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -9,7 +9,7 @@ class StoreUnitRequest extends FormRequest
     public function authorize(): bool
     {
         $user = auth()->user();
-        return $user && $user->can('create-Unit');
+        return $user && $user->can('create-Department');
     }
 
     public function rules(): array

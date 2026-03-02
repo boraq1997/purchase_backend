@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Unit;
+namespace App\Http\Requests\Units;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,12 +10,14 @@ class UpdateUnitRequest extends FormRequest
     public function authorize(): bool
     {
         $user = auth()->user();
-        return $user && $user->can('edit-Unit');
+        return $user && $user->can('edit-Department');
     }
 
     public function rules(): array
     {
-        $unitId = $this->route('unit'); // يعتمد على Route Model Binding
+        $unitId = $this->route('unit') instanceof \App\Models\Unit 
+            ? $this->route('unit')->id 
+            : $this->route('unit');     
 
         return [
             'name' => [
