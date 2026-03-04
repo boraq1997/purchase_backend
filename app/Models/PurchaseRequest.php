@@ -12,26 +12,29 @@ class PurchaseRequest extends Model
     use HasFactory;
 
     protected $fillable = [
-        'request_number',
         'department_id',
-        'committee_id',
         'user_id',
         'title',
         'description',
         'total_estimated_cost',
+        'priority',
+    ];
+
+    protected $guarded = [
+        'request_number',
         'status_type',
         'status_action_by',
         'status_role',
         'status_date',
         'rejected_reason',
-        'priority',
+        'commitee_id',
         'closed_at',
     ];
 
     protected $casts = [
-        'status_date' => 'datetime',
-        'closed_at' => 'datetime',
-        'total_estimated_cost' => 'decimal:2',
+        'status_date'           => 'datetime',
+        'closed_at'             => 'datetime',
+        'total_estimated_cost'  => 'decimal:2'
     ];
 
     /*
@@ -110,8 +113,12 @@ class PurchaseRequest extends Model
             }
 
             // تعيين القيم الافتراضية
-            $purchaseRequest->status_type ??= 'draft';
+            $purchaseRequest->status_type ??= 'pending';
             $purchaseRequest->priority ??= 'medium';
+
+            if (empty($purchaseRequest->user_id)) {
+                $purchaseRequest->user_id = auth()->id();
+            }
         });
     }
 

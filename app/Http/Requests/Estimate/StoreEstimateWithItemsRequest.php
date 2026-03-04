@@ -8,8 +8,9 @@ class StoreEstimateWithItemsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = auth()->user();
-        return $user && $user->can('create-Estimate');
+        // $user = auth()->user();
+        // return $user && $user->can('EstimateItem-create');
+        return true;
     }
 
     public function rules(): array
@@ -27,6 +28,9 @@ class StoreEstimateWithItemsRequest extends FormRequest
             'items.*.quantity'              => 'nullable|integer|min:1',
             'items.*.unit_price'            => 'required|numeric|min:0',
             'items.*.notes'                 => 'nullable|string|max:500',
+
+            'images' => 'nullable|array',
+            'images.*' => 'file|mimes:jpg,jpeg,png|max:2048'
         ];
     }
 

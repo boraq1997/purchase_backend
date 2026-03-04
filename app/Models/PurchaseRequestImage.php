@@ -21,13 +21,11 @@ class PurchaseRequestImage extends Model
         return asset('storage/'. $this->file_path);
     }
 
-    public function purchaseRequest()
-    {
+    public function purchaseRequest() {
         return $this->belongsTo(PurchaseRequest::class);
     }
 
-    public function uploader()
-    {
+    public function uploader() {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 }

@@ -9,10 +9,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Services\ActivityLogService;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use App\Models\EstimateImage;
 
 class EstimateService
 {
-
     protected ActivityLogService $logService;
 
     public function __construct() {
@@ -41,6 +44,7 @@ class EstimateService
                 'purchaseRequest',
                 'requestItem',
                 'creator',
+                'images',
             ]);
         });
     }
@@ -96,6 +100,9 @@ class EstimateService
                     'total_price'     => $totalPrice,
                     'notes'           => $itemData['notes'] ?? null,
                 ]);
+                $images = $estimateData['images'] ?? null;
+                unset($estimateData['images']);
+                $this->handleImage($estimate, $images);
 
                 $totalAmount += $totalPrice;
             }
@@ -122,6 +129,7 @@ class EstimateService
                 'purchaseRequest',
                 'estimateItems.requestItem',
                 'creator',
+                'images'
             ]);
         });
     }
@@ -133,6 +141,8 @@ class EstimateService
     {
         return DB::transaction(function () use ($estimate, $data) {
             $oldValues = $estimate->toArray();
+            $images = $data['images'] ?? null;
+            unset($data['images']);
 
             // ── 1. استخرج الـ items وأزلها من بيانات الـ estimate
             $itemsData = $data['items'] ?? null;
@@ -178,6 +188,7 @@ class EstimateService
                 $estimate->update([
                     'total_amount' => $estimate->estimateItems()->sum('total_price'),
                 ]);
+                $this->handleImage($estimate, $images);
             }
 
             $this->logService->log(
@@ -196,6 +207,7 @@ class EstimateService
                 'requestItem',
                 'estimateItems.requestItem',
                 'creator',
+                'images',
             ]);
         });
     }
@@ -234,6 +246,7 @@ class EstimateService
             'purchaseRequest',
             'estimateItems.requestItem',
             'creator',
+            'images.uploader'
         ]);
 
         if (!empty($filters['vendor_id'])) {
@@ -278,6 +291,7 @@ class EstimateService
             'requestItem',
             'estimateItems.requestItem',
             'creator',
+            'images'
         ]);
 
         $this->logService->log(
@@ -300,6 +314,7 @@ class EstimateService
             'vendor',
             'purchaseRequest',
             'estimateItems.requestItem',
+            'images.uploader'
         ])
             ->where('request_item_id', $requestItemId)
             ->latest()
@@ -352,7 +367,36 @@ class EstimateService
                 'requestItem',
                 'purchaseRequest',
                 'creator',
+                'images'
             ]);
         });
+    }
+
+    protected function handleImage(Estimate $estimate, ?array $images) {
+        if (!$images) {
+            return;
+        }
+
+        foreach($images as $image) {
+            if (!$image instanceof UploadedFile) {
+                continue;
+            }
+
+            $fileName = Str::uuid() . '.' . $image->getClientOriginalExtension();
+
+            $path = $image->storeAs(
+                "estimate/{$estimate->id}",
+                $fileName,
+                'public'
+            );
+
+            $estimate->images()->create([
+                'file_name' => $fileName,
+                'file_path' => $path,
+                'file_type' => $image->getClientMimeType(),
+                'file_size' => $image->getSize(),
+                'uploaded_by' => auth()->id(),
+            ]);
+        }
     }
 }

@@ -88,6 +88,7 @@ class EstimateController extends Controller
         int $purchaseRequest
     ) {
         $data  = $request->validated();
+        $data['images'] = $request->file('images');
         $items = $data['items'];
 
         unset($data['items']);

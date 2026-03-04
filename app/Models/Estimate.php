@@ -23,8 +23,9 @@ class Estimate extends Model
     ];
 
     protected $casts = [
-        'estimate_date' => 'date', // لأن العمود date وليس datetime
+        'estimate_date' => 'date',
         'total_amount' => 'decimal:2',
+        'images' => 'array',
     ];
 
     /*
@@ -56,6 +57,10 @@ class Estimate extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function images(): HasMany {
+        return $this->hasMany(EstimateImage::class);
     }
 
     /*

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->decimal('total_estimated_cost', 14, 2)->nullable();
-            $table->enum('status_type', ['draft', 'pending', 'approved', 'rejected', 'completed'])->default('draft');
+            $table->enum('status_type', ['draft', 'pending', 'approved', 'rejected', 'completed'])->default('pending');
             $table->foreignId('status_action_by')->nullable();
             $table->enum('status_role', ['alameen', 'alameenAssestant'])->nullable();
             $table->timestamp('status_date')->nullable();

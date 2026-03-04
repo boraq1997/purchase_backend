@@ -95,6 +95,9 @@ class PurchaseRequestService
             $data['status_type'] ??= 'draft';
             $data['priority'] ??= 'medium';
 
+            $images = $data['images'] ?? [];
+            unset($data['images']);
+
             $purchaseRequest = PurchaseRequest::create($data);
 
             // إنشاء العناصر التابعة في حال وُجدت
@@ -103,15 +106,15 @@ class PurchaseRequestService
                     $purchaseRequest->items()->create([
                         'item_name' => $item['item_name'] ?? null,
                         'quantity'  => $item['quantity'] ?? 1,
-                        'unit'      => $item['unit'] ?? null,
+                        'unit_id'      => $item['unit_id'] ?? null,
                         'specs'     => $item['specs'] ?? null,
                     ]);
                 }
             }
 
-            if (!empty($data['images']) && is_array($data['images'])) {
-                foreach($data['images'] as $image) {
-                    $fileName = \Str::uuid() . '.' . $image->getClientOriginExtension();
+            if (!empty($images) && is_array($images)) {
+                foreach($images as $image) {
+                    $fileName = \Str::uuid() . '.' . $image->getClientOriginalExtension();
 
                     $path = $image->storeAs(
                         "purchase_requests/{$purchaseRequest->id}",
@@ -122,7 +125,7 @@ class PurchaseRequestService
                     $purchaseRequest->images()->create([
                         'file_name' => $fileName,
                         'file_path' => $path,
-                        'file_type' => $image->getClientMomeType(),
+                        'file_type' => $image->getClientMimeType(),
                         'file_size' => $image->getSize(),
                         'uploaded_by' => auth()->id(),
                     ]);
@@ -133,123 +136,119 @@ class PurchaseRequestService
         });
     }
 
-    /**
-     * تحديث طلب شراء موجود
-     */
+    public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseRequest
+    {
+        return DB::transaction(function () use ($purchaseRequest, $data) {
 
-public function update(PurchaseRequest $purchaseRequest, array $data): PurchaseRequest
-{
-    return DB::transaction(function () use ($purchaseRequest, $data) {
+            // ===== تحديث بيانات الطلب الرئيسية =====
+            $purchaseRequest->update([
+                'title'         => $data['title']         ?? $purchaseRequest->title,
+                'description'   => $data['description']   ?? $purchaseRequest->description,
+                'priority'      => $data['priority']      ?? $purchaseRequest->priority,
+                'department_id' => $data['department_id'] ?? $purchaseRequest->department_id,
+            ]);
 
-        // ===== تحديث بيانات الطلب الرئيسية =====
-        $purchaseRequest->update([
-            'title'         => $data['title']         ?? $purchaseRequest->title,
-            'description'   => $data['description']   ?? $purchaseRequest->description,
-            'priority'      => $data['priority']      ?? $purchaseRequest->priority,
-            'department_id' => $data['department_id'] ?? $purchaseRequest->department_id,
-        ]);
+            if (isset($data['items']) && is_array($data['items'])) {
 
-        if (isset($data['items']) && is_array($data['items'])) {
+                $existingItems = $purchaseRequest->items()
+                    ->with(['needsAssessment', 'warehouseCheck'])
+                    ->get();
 
-            $existingItems = $purchaseRequest->items()
-                ->with(['needsAssessment', 'warehouseCheck'])
-                ->get();
+                $existingItemIds = $existingItems->pluck('id')->toArray();
 
-            $existingItemIds = $existingItems->pluck('id')->toArray();
+                $sentItems    = collect($data['items']);
+                $sentItemIds  = $sentItems->pluck('id')->filter()->toArray(); // فقط اللي فيها id
 
-            $sentItems    = collect($data['items']);
-            $sentItemIds  = $sentItems->pluck('id')->filter()->toArray(); // فقط اللي فيها id
+                $protectedItemIds = $existingItems->filter(function ($item) {
+                    return $item->needsAssessment()->exists() || $item->warehouseCheck()->exists();
+                })->pluck('id')->toArray();
 
-            $protectedItemIds = $existingItems->filter(function ($item) {
-                return $item->needsAssessment()->exists() || $item->warehouseCheck()->exists();
-            })->pluck('id')->toArray();
+                // المواد التي "اختفت" من الطلب (يعني يريد يحذفها)
+                $missingItemIds = array_diff($existingItemIds, $sentItemIds);
 
-            // المواد التي "اختفت" من الطلب (يعني يريد يحذفها)
-            $missingItemIds = array_diff($existingItemIds, $sentItemIds);
+                $protectedMissing = array_intersect($missingItemIds, $protectedItemIds);
+                if (!empty($protectedMissing)) {
+                    throw ValidationException::withMessages([
+                        'items' => 'لا يمكن حذف مواد لديها تقييم حاجة أو فحص مستودع.'
+                    ]);
+                }
 
-            $protectedMissing = array_intersect($missingItemIds, $protectedItemIds);
-            if (!empty($protectedMissing)) {
-                throw ValidationException::withMessages([
-                    'items' => 'لا يمكن حذف مواد لديها تقييم حاجة أو فحص مستودع.'
-                ]);
-            }
+                $idsToDelete = array_diff($missingItemIds, $protectedItemIds);
+                if (!empty($idsToDelete)) {
+                    RequestItem::whereIn('id', $idsToDelete)->delete();
+                }
 
-            $idsToDelete = array_diff($missingItemIds, $protectedItemIds);
-            if (!empty($idsToDelete)) {
-                RequestItem::whereIn('id', $idsToDelete)->delete();
-            }
+                foreach ($data['items'] as $itemData) {
 
-            foreach ($data['items'] as $itemData) {
+                    if (!empty($itemData['id'])) {
+                        /** @var RequestItem|null $itemModel */
+                        $itemModel = $existingItems->firstWhere('id', $itemData['id']);
 
-                if (!empty($itemData['id'])) {
-                    /** @var RequestItem|null $itemModel */
-                    $itemModel = $existingItems->firstWhere('id', $itemData['id']);
+                        if (!$itemModel) {
+                            continue;
+                        }
 
-                    if (!$itemModel) {
-                        continue;
-                    }
+                        if ($itemModel->needsAssessment()->exists() || $itemModel->warehouseCheck()->exists()) {
+                            throw ValidationException::withMessages([
+                                'items' => 'لا يمكن تعديل مادة لديها تقييم حاجة أو فحص مستودع.'
+                            ]);
+                        }
 
-                    if ($itemModel->needsAssessment()->exists() || $itemModel->warehouseCheck()->exists()) {
-                        throw ValidationException::withMessages([
-                            'items' => 'لا يمكن تعديل مادة لديها تقييم حاجة أو فحص مستودع.'
+                        // مسموح تعديلها
+                        $itemModel->update([
+                            'item_name'             => $itemData['item_name'] ?? $itemModel->item_name,
+                            'quantity'              => $itemData['quantity']  ?? $itemModel->quantity,
+                            'unit_id'              => $itemData['unit']      ?? $itemModel->unit_id,
+                            'specifications'        => $itemData['specifications'] ?? $itemModel->specifications,
+                            'estimated_unit_price'  => $itemData['estimated_unit_price'] ?? $itemModel->estimated_unit_price,
+                        ]);
+
+                    } else {
+                        // ===== حالة: مادة جديدة (بدون id) =====
+                        $purchaseRequest->items()->create([
+                            'item_name'             => $itemData['item_name'],
+                            'quantity'              => $itemData['quantity']  ?? 1,
+                            'unit_id'               => $itemData['unit'] ?? null,
+                            'specifications'        => $itemData['specifications'] ?? null,
+                            'estimated_unit_price'  => $itemData['estimated_unit_price'] ?? null,
                         ]);
                     }
+                }
 
-                    // مسموح تعديلها
-                    $itemModel->update([
-                        'item_name'             => $itemData['item_name'] ?? $itemModel->item_name,
-                        'quantity'              => $itemData['quantity']  ?? $itemModel->quantity,
-                        'unit_id'              => $itemData['unit']      ?? $itemModel->unit_id,
-                        'specifications'        => $itemData['specifications'] ?? $itemModel->specifications,
-                        'estimated_unit_price'  => $itemData['estimated_unit_price'] ?? $itemModel->estimated_unit_price,
-                    ]);
+                if (!empty($data['images']) && is_array($data['images'])) {
 
-                } else {
-                    // ===== حالة: مادة جديدة (بدون id) =====
-                    $purchaseRequest->items()->create([
-                        'item_name'             => $itemData['item_name'],
-                        'quantity'              => $itemData['quantity']  ?? 1,
-                        'unit_id'               => $itemData['unit'] ?? null,
-                        'specifications'        => $itemData['specifications'] ?? null,
-                        'estimated_unit_price'  => $itemData['estimated_unit_price'] ?? null,
-                    ]);
+                    foreach ($data['images'] as $image) {
+
+                        $fileName = \Str::uuid() . '.' . $image->getClientOriginalExtension();
+
+                        $path = $image->storeAs(
+                            "purchase_requests/{$purchaseRequest->id}",
+                            $fileName,
+                            'public'
+                        );
+
+                        $purchaseRequest->images()->create([
+                            'file_name'   => $fileName,
+                            'file_path'   => $path,
+                            'file_type'   => $image->getClientMimeType(),
+                            'file_size'   => $image->getSize(),
+                            'uploaded_by' => auth()->id(),
+                        ]);
+                    }
                 }
             }
 
-            if (!empty($data['images']) && is_array($data['images'])) {
-
-                foreach ($data['images'] as $image) {
-
-                    $fileName = \Str::uuid() . '.' . $image->getClientOriginalExtension();
-
-                    $path = $image->storeAs(
-                        "purchase_requests/{$purchaseRequest->id}",
-                        $fileName,
-                        'public'
-                    );
-
-                    $purchaseRequest->images()->create([
-                        'file_name'   => $fileName,
-                        'file_path'   => $path,
-                        'file_type'   => $image->getClientMimeType(),
-                        'file_size'   => $image->getSize(),
-                        'uploaded_by' => auth()->id(),
-                    ]);
-                }
+            // تحديث الحالة إن وُجدت تقديرات والطلب مازال draft
+            if (
+                $purchaseRequest->estimates()->exists() &&
+                $purchaseRequest->status_type === 'draft'
+            ) {
+                $purchaseRequest->update(['status_type' => 'pending']);
             }
-        }
 
-        // تحديث الحالة إن وُجدت تقديرات والطلب مازال draft
-        if (
-            $purchaseRequest->estimates()->exists() &&
-            $purchaseRequest->status_type === 'draft'
-        ) {
-            $purchaseRequest->update(['status_type' => 'pending']);
-        }
-
-        return $purchaseRequest->load(['department', 'creator', 'items', 'images']);
-    });
-}
+            return $purchaseRequest->load(['department', 'creator', 'items', 'images']);
+        });
+    }
 
     /**
      * حذف طلب شراء

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\EstimateImageResource;
 
 class EstimateResource extends JsonResource
 {
@@ -71,6 +72,9 @@ class EstimateResource extends JsonResource
                         ] : null,
                     ];
                 });
+            }),
+            'images' => $this->whenLoaded('images', function() {
+                return EstimateImageResource::collection($this->images);
             }),
 
             'created_by' => $this->whenLoaded('creator', function () {

@@ -30,6 +30,9 @@ class StoreEstimateRequest extends FormRequest
             'items.*.unit_price'          => 'required_with:items|numeric|min:0',
             'items.*.quantity'            => 'required_with:items|numeric|min:1',
             'items.*.total_price'         => 'nullable|numeric|min:0',
+
+            'images' => 'nullable|array',
+            'images.*' => 'file|mimes:jpg,jpeg,png|max:2048',
         ];
     }
 

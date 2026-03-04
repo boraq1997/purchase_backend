@@ -86,7 +86,7 @@ class PurchaseRequestController extends Controller
     public function updateStatus(Request $request, PurchaseRequest $purchaseRequest)
     {
         $request->validate([
-            'status' => 'required|string',
+            'status' => 'required|string|in:pending,approved,rejected,completed',
             'note'   => 'nullable|string|max:500',
         ]);
 

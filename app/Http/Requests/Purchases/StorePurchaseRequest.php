@@ -25,27 +25,26 @@ class StorePurchaseRequest extends FormRequest
             'description'     => 'nullable|string',
             'department_id'   => 'required|exists:departments,id',
             'priority'        => 'nullable|in:low,medium,high',
-            'status'          => 'nullable|in:pending,approved,rejected,completed',
             'items'           => 'nullable|array',
-            'items.*.item_name'    => 'required_with:items|string|max:255',
-            'items.*.quantity'     => 'required_with:items|integer|min:1',
-            'items.*.unit'         => 'nullable|string|max:50',
-            'items.*.notes'        => 'nullable|string|max:500',
+            'items.*.item_name'             => 'required_with:items|string|max:255',
+            'items.*.quantity'              => 'required_with:items|integer|min:1',
+            'items.*.unit_id'               => 'nullable|exists:units,id',
+            'items.*.estimated_unit_price'  => 'nullable|numeric|min:0',
+            'items.*.notes'                 => 'nullable|string|max:500',
         ];
     }
 
     public function messages()
     {
         return [
-            'title.required'           => 'purchase request title is required',
-            'department_id.required'   => 'department is required',
-            'department_id.exists'     => 'department not found',
-            'user_id.required'         => 'user is required',
-            'user_id.exists'           => 'user not found',
-            'items.array'              => 'items must be an array',
-            'items.*.item_name.required_with' => 'item name is required',
-            'items.*.quantity.required_with' => 'item quantity is required',
-            'items.*.quantity.integer' => 'item quantity must be a number',
+            'title.required'                        => 'purchase request title is required',
+            'department_id.required'                => 'department is required',
+            'department_id.exists'                  => 'department not found',
+            'items.array'                           => 'items must be an array',
+            'items.*.item_name.required_with'       => 'item name is required',
+            'items.*.quantity.required_with'        => 'item quantity is required',
+            'items.*.quantity.integer'              => 'item quantity must be a number',
+            'items.*.unit_id.exists'                => 'unit not found',
         ];
     }
 }

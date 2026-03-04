@@ -9,7 +9,7 @@ class UpdateEstimateRequest extends FormRequest
     public function authorize(): bool
     {
         $user = auth()->user();
-        return $user && $user->can('edit-Estimate');
+        return $user && $user->can('Estimate-edit');
     }
 
     public function rules(): array
@@ -33,6 +33,9 @@ class UpdateEstimateRequest extends FormRequest
             'items.*.quantity'            => 'required_with:items|numeric|min:1',
             'items.*.total_price'         => 'nullable|numeric|min:0',
             'items.*.notes'               => 'nullable|string|max:500',
+
+            'images' => 'nullbale|array',
+            'image.*' => 'file|mimes:jpg,jpeg,png|max:2048',
         ];
     }
 

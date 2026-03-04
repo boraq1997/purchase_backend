@@ -19,7 +19,10 @@ class PurchaseRequestImageResource extends JsonResource
             'id' => $this->id,
             'purchase_request_id' => $this->purchase_request_id,
             'file_name' => $this->file_name,
-            'file_url'  => $this->file_path ? Storage::url($this->file_path) : null,
+            'file_url'            => $this->file_path ? asset('storage/'. $this->file_path) : null,
+            'file_type' => $this->file_type,
+            'file_size' => $this->file_size,
+            'uploaded_by' => $this->uploaded_by,
             'created_at' => $this->created_at,
         ];
     }

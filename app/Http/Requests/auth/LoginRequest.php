@@ -22,8 +22,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => 'required|string',
-            'password' => 'required|string|min:4',
+            'username' => 'required|string|max:255',
+            'password' => 'required|string|min:6',
         ];
     }
 
@@ -31,7 +31,7 @@ class LoginRequest extends FormRequest
         return [
             'username.required' => 'USERNAME_IS_REQUIRED',
             'password.required' => 'PASSWORD_IS_REQUIRED',
-            'password.min'      => 'PASSWORD_MUST_BE_MARE_THAN_4_CHR',
+            'password.min'      => 'PASSWORD_MUST_BE_MARE_THAN_6_CHR',
         ];
     }
 }

@@ -8,100 +8,96 @@ use Spatie\Permission\Models\Role;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // 🧩 جميع الوحدات (Modules)
+        // ==============================
+        // تعريف الصلاحيات لكل وحدة
+        // ==============================
+
         $modules = [
-            'User',
-            'Department',
-            'Role',
-            'Permission',
-            'Committees',
-            'Estimate',
-            'EstimateItem',
-            'PurchaseRequest',
-            'RequestItem',
-            'Procurement',
-            'ProcurementItem',
-            'WarehouseCheck',
-            'NeedsAssessment',
-            'Report',
-            'Vendors'
+
+            'ActivityLog' => ['view'],
+
+            'Committee' => ['view','create','edit','delete'],
+            'Department' => ['view','create','edit','delete'],
+            'Estimate' => ['view','create','edit','delete','agree','show_images'],
+            'EstimateItem' => ['view','create','edit','delete'],
+            'PurchaseRequest' => ['view','create','edit','delete','agree','show_images'],
+            'PurchaseRequestImage' => ['view','create','edit','delete'],
+            'Report' => ['create'],
+            'RequestItem' => ['view','create','edit','delete'],
+            'Role' => ['view','create','edit','delete'],
+            'User' => ['view','create','edit','delete'],
+            'Unit' => ['view','create','edit','delete'],
+            'Vendor' => ['view','create','edit','delete'],
+            'WarehouseCheck' => ['view','create','edit','delete'],
         ];
 
-        // ⚙️ الإجراءات (Actions)
-        $actions = ['view', 'create', 'edit', 'delete'];
+        // ==============================
+        // إنشاء الصلاحيات بنمط Module-Action
+        // ==============================
 
-        // 🛠️ إنشاء الصلاحيات
-        foreach ($modules as $module) {
+        foreach ($modules as $module => $actions) {
             foreach ($actions as $action) {
+
                 Permission::firstOrCreate([
-                    'name' => "{$action}-{$module}",
+                    'name'       => "{$module}-{$action}",
                     'guard_name' => 'sanctum',
                 ]);
             }
         }
 
-        // صلاحيات إضافية خاصة
-        $extraPermissions = [
-            'view-department-users',
-            'approve-purchase-request',
-            'review-estimate',
-            'finalize-procurement',
-            'generate-report',
-        ];
+        $this->command->info('✅ Permissions created successfully.');
 
-        foreach ($extraPermissions as $perm) {
-            Permission::firstOrCreate([
-                'name' => $perm,
-                'guard_name' => 'sanctum',
-            ]);
-        }
+        // ==============================
+        // إنشاء الأدوار
+        // ==============================
 
-        // ✅ عرض الصلاحيات بعد الإنشاء
-        $this->command->info('✅ All Permissions seeded successfully!');
+        $allPermissions = Permission::where('guard_name', 'sanctum')
+            ->pluck('name')
+            ->toArray();
 
-        /*
-        |--------------------------------------------------------------------------
-        | إنشاء الأدوار (Roles)
-        |--------------------------------------------------------------------------
-        */
-
-        // جلب جميع الصلاحيات
-        $allPermissions = Permission::pluck('name')->toArray();
-
-        // 🧑‍💼 الأدوار الأساسية
         $roles = [
-            'Admin' => $allPermissions, // كل الصلاحيات
-            'Manager' => array_filter($allPermissions, fn($p) =>
-                str_contains($p, 'view') ||
-                str_contains($p, 'edit') ||
-                str_contains($p, 'approve') ||
-                str_contains($p, 'review')
-            ),
-            'Reviewer' => array_filter($allPermissions, fn($p) =>
-                str_contains($p, 'view') ||
-                str_contains($p, 'review')
-            ),
-            'Employee' => array_filter($allPermissions, fn($p) =>
-                str_contains($p, 'view') ||
-                str_contains($p, 'create-PurchaseRequest') ||
-                str_contains($p, 'create-Estimate')
-            ),
+
+            // Admin: كل الصلاحيات
+            'Admin' => $allPermissions,
+
+            // Manager: view + edit + agree + show_images
+            'Manager' => array_values(array_filter($allPermissions, function ($perm) {
+                return str_ends_with($perm, '-view') ||
+                       str_ends_with($perm, '-edit') ||
+                       str_contains($perm, '-agree') ||
+                       str_contains($perm, '-show_images');
+            })),
+
+            // Reviewer: view + agree + show_images
+            'Reviewer' => array_values(array_filter($allPermissions, function ($perm) {
+                return str_ends_with($perm, '-view') ||
+                       str_contains($perm, '-agree') ||
+                       str_contains($perm, '-show_images');
+            })),
+
+            // Employee: طلبات الشراء فقط
+            'Employee' => [
+                'PurchaseRequest-view',
+                'PurchaseRequest-create',
+                'RequestItem-view',
+                'RequestItem-create',
+            ],
         ];
 
-        // إنشاء الأدوار وربط الصلاحيات
         foreach ($roles as $roleName => $rolePermissions) {
+
             $role = Role::firstOrCreate([
-                'name' => $roleName,
+                'name'       => $roleName,
                 'guard_name' => 'sanctum',
             ]);
+
             $role->syncPermissions($rolePermissions);
+
+            $this->command->info("✅ Role '{$roleName}' synced.");
         }
 
-        $this->command->info('✅ Roles and permissions seeded successfully!');
+        $this->command->info('✅ Roles & Permissions seeded successfully.');
     }
 }
