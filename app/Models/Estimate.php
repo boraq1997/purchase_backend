@@ -25,7 +25,6 @@ class Estimate extends Model
     protected $casts = [
         'estimate_date' => 'date',
         'total_amount' => 'decimal:2',
-        'images' => 'array',
     ];
 
     /*

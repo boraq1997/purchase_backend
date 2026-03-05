@@ -9,7 +9,7 @@ class StoreEstimateRequest extends FormRequest
     public function authorize(): bool
     {
         $user = auth()->user();
-        return $user && $user->can('create-estimate');
+        return $user && $user->can('create-Estimate');
     }
 
     public function rules(): array

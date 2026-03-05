@@ -9,7 +9,7 @@ class UpdateEstimateRequest extends FormRequest
     public function authorize(): bool
     {
         $user = auth()->user();
-        return $user && $user->can('Estimate-edit');
+        return $user && $user->can(abilities: 'edit-Estimate');
     }
 
     public function rules(): array
@@ -25,39 +25,44 @@ class UpdateEstimateRequest extends FormRequest
             'notes'               => 'nullable|string',
             'status'              => 'nullable|in:pending,accepted,rejected',
 
-            'items'                       => 'nullable|array',
-            'items.*.id'                  => 'nullable|exists:estimate_items,id',
-            'items.*.request_item_id'     => 'required_with:items|exists:request_items,id',
-            'items.*.item_name'           => 'nullable|string|max:255',
-            'items.*.unit_price'          => 'required_with:items|numeric|min:0',
-            'items.*.quantity'            => 'required_with:items|numeric|min:1',
-            'items.*.total_price'         => 'nullable|numeric|min:0',
-            'items.*.notes'               => 'nullable|string|max:500',
+            'items'                   => 'nullable|array',
+            'items.*.id'              => 'nullable|exists:estimate_items,id',
+            'items.*.request_item_id' => 'required_with:items|exists:request_items,id',
+            'items.*.item_name'       => 'nullable|string|max:255',
+            'items.*.unit_price'      => 'required_with:items|numeric|min:0',
+            'items.*.quantity'        => 'required_with:items|numeric|min:1',
+            'items.*.total_price'     => 'nullable|numeric|min:0',
+            'items.*.notes'           => 'nullable|string|max:500',
 
-            'images' => 'nullbale|array',
-            'image.*' => 'file|mimes:jpg,jpeg,png|max:2048',
+            'images'   => 'nullable|array',
+            'images.*' => 'file|mimes:jpg,jpeg,png|max:2048',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'purchase_request_id.exists'   => 'purchase request not found',
-            'request_item_id.exists'       => 'request item not found',
-            'vendor_id.exists'             => 'vendor not found',
+            'purchase_request_id.exists'            => 'purchase request not found',
+            'request_item_id.exists'                => 'request item not found',
+            'vendor_id.exists'                      => 'vendor not found',
 
-            'estimate_date.date'           => 'estimate date must be a valid date',
+            'estimate_date.date'                    => 'estimate date must be a valid date',
 
-            'total_amount.required'        => 'total amount is required',
-            'total_amount.numeric'         => 'total amount must be numeric',
+            'total_amount.required'                 => 'total amount is required',
+            'total_amount.numeric'                  => 'total amount must be numeric',
 
-            'status.in'                    => 'status must be pending, accepted or rejected',
+            'status.in'                             => 'status must be pending, accepted or rejected',
 
-            'items.array'                  => 'items must be an array',
-            'items.*.id.exists'            => 'estimate item not found',
+            'items.array'                           => 'items must be an array',
+            'items.*.id.exists'                     => 'estimate item not found',
             'items.*.request_item_id.required_with' => 'request item id is required',
             'items.*.unit_price.required_with'      => 'unit price is required',
             'items.*.quantity.required_with'        => 'quantity is required',
+
+            'images.array'                          => 'images must be an array',
+            'images.*.file'                         => 'each image must be a valid file',
+            'images.*.mimes'                        => 'only jpg, jpeg, png formats are allowed',
+            'images.*.max'                          => 'image size must not exceed 2MB',
         ];
     }
 }

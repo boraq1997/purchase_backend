@@ -21,7 +21,8 @@ class EstimateController extends Controller
     }
 
     /**
-     * عرض جميع عروض الأسعار مع الفلاتر
+     * Get all estimates with optional filters
+     * GET /estimates
      */
     public function index(Request $request)
     {
@@ -42,7 +43,8 @@ class EstimateController extends Controller
     }
 
     /**
-     * عرض عرض سعر محدد
+     * Get a single estimate
+     * GET /estimates/{estimate}
      */
     public function show(Estimate $estimate)
     {
@@ -52,7 +54,8 @@ class EstimateController extends Controller
     }
 
     /**
-     * جلب آخر عرض سعر لمادة معيّنة
+     * Get the latest estimate linked to a specific request item
+     * GET /request-items/{requestItemId}/estimate
      */
     public function getByItem(int $requestItemId)
     {
@@ -66,30 +69,30 @@ class EstimateController extends Controller
     }
 
     /**
-     * إنشاء عرض سعر لمادة واحدة
+     * Create a simple estimate for a single request item
      * POST /request-items/{requestItem}/estimates
      */
     public function storeForItem(StoreEstimateRequest $request, int $requestItem)
     {
-        $estimate = $this->service->createForItem(
-            $requestItem,
-            $request->validated()
-        );
+        $data           = $request->validated();
+        $data['images'] = $request->file('images');
+
+        $estimate = $this->service->createForItem($requestItem, $data);
 
         return new EstimateResource($estimate);
     }
 
     /**
-     * إنشاء عرض سعر مع عناصر متعددة
+     * Create an estimate with multiple items
      * POST /purchase-requests/{purchaseRequest}/estimates/with-items
      */
     public function storeWithItems(
         StoreEstimateWithItemsRequest $request,
         int $purchaseRequest
     ) {
-        $data  = $request->validated();
+        $data           = $request->validated();
         $data['images'] = $request->file('images');
-        $items = $data['items'];
+        $items          = $data['items'];
 
         unset($data['items']);
 
@@ -103,20 +106,22 @@ class EstimateController extends Controller
     }
 
     /**
-     * تحديث عرض سعر
+     * Update an existing estimate
+     * PUT /estimates/{estimate}
      */
     public function update(UpdateEstimateRequest $request, Estimate $estimate)
     {
-        $estimate = $this->service->update(
-            $estimate,
-            $request->validated()
-        );
+        $data           = $request->validated();
+        $data['images'] = $request->file('images'); // files are not included in validated()
+
+        $estimate = $this->service->update($estimate, $data);
 
         return new EstimateResource($estimate);
     }
 
     /**
-     * حذف عرض سعر
+     * Delete an estimate
+     * DELETE /estimates/{estimate}
      */
     public function destroy(Estimate $estimate)
     {

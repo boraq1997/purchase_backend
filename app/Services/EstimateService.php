@@ -22,36 +22,162 @@ class EstimateService
         $this->logService = new ActivityLogService();
     }
 
-    /**
-     * إنشاء عرض سعر بدون عناصر (حالة بسيطة)
-     */
-    public function create(array $data): Estimate
+    /*
+    |--------------------------------------------------------------------------
+    | Get all estimates with optional filters
+    |--------------------------------------------------------------------------
+    */
+    public function getAll(array $filters = [])
     {
-        return DB::transaction(function () use ($data) {
-            $estimate = Estimate::create($data);
+        $q = Estimate::with([
+            'vendor',
+            'purchaseRequest',
+            'requestItem',
+            'estimateItems.requestItem',
+            'creator',
+            'images',
+        ]);
+
+        if (!empty($filters['vendor_id'])) {
+            $q->where('vendor_id', $filters['vendor_id']);
+        }
+
+        if (!empty($filters['department_id'])) {
+            $q->whereHas('purchaseRequest', function (Builder $query) use ($filters) {
+                $query->where('department_id', $filters['department_id']);
+            });
+        }
+
+        if (!empty($filters['request_title'])) {
+            $q->whereHas('purchaseRequest', function (Builder $query) use ($filters) {
+                $query->where('title', 'like', '%' . $filters['request_title'] . '%');
+            });
+        }
+
+        if (!empty($filters['status'])) {
+            $q->where('status', $filters['status']);
+        }
+
+        $this->logService->log(
+            action: 'view_estimates',
+            actionLabel: 'View all estimates',
+            subjectType: Estimate::class,
+            metadata: ['filters' => $filters],
+            module: 'Estimates'
+        );
+
+        return $q->latest('id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get a single estimate by model
+    |--------------------------------------------------------------------------
+    */
+    public function getById(Estimate $estimate): Estimate
+    {
+        $estimate = $estimate->load([
+            'vendor',
+            'purchaseRequest',
+            'requestItem',
+            'estimateItems.requestItem',
+            'creator',
+            'images',
+        ]);
+
+        $this->logService->log(
+            action: 'view_estimate',
+            actionLabel: 'View estimate',
+            subjectType: Estimate::class,
+            subjectId: $estimate->id,
+            module: 'Estimates'
+        );
+
+        return $estimate;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get the latest estimate linked to a specific request item
+    |--------------------------------------------------------------------------
+    */
+    public function getByItem(int $requestItemId): ?Estimate
+    {
+        $estimate = Estimate::with([
+            'vendor',
+            'purchaseRequest',
+            'estimateItems.requestItem',
+            'images.uploader',
+        ])
+            ->where('request_item_id', $requestItemId)
+            ->latest()
+            ->first();
+
+        $this->logService->log(
+            action: 'view_estimate_by_item',
+            actionLabel: 'View estimate by request item',
+            subjectType: Estimate::class,
+            subjectId: $estimate?->id,
+            metadata: ['request_item_id' => $requestItemId],
+            module: 'Estimates'
+        );
+
+        return $estimate;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create a simple estimate for a single request item
+    |--------------------------------------------------------------------------
+    */
+    public function createForItem(int $requestItemId, array $data): Estimate
+    {
+        return DB::transaction(function () use ($requestItemId, $data) {
+
+            $item = RequestItem::findOrFail($requestItemId);
+
+            $images = $data['images'] ?? null;
+            unset($data['images']);
+
+            $estimate = Estimate::create([
+                'purchase_request_id' => $item->purchase_request_id,
+                'request_item_id'     => $item->id,
+                'vendor_id'           => $data['vendor_id'] ?? null,
+                'estimate_date'       => $data['estimate_date'] ?? now(),
+                'total_amount'        => $data['total_amount'] ?? 0,
+                'notes'               => $data['notes'] ?? null,
+                'status'              => $data['status'] ?? 'pending',
+                'created_by'          => auth()->id(),
+            ]);
+
+            // Upload images if provided
+            $this->handleImage($estimate, $images);
 
             $this->logService->log(
-                action: 'create_estimate',
-                actionLabel: 'إنشاء عرض سعر',
+                action: 'create_estimate_for_item',
+                actionLabel: 'Create estimate for request item',
                 subjectType: Estimate::class,
                 subjectId: $estimate->id,
                 newValues: $estimate->toArray(),
-                module: 'عروض الأسعار'
+                metadata: ['request_item_id' => $requestItemId],
+                module: 'Estimates'
             );
 
             return $estimate->load([
                 'vendor',
-                'purchaseRequest',
                 'requestItem',
+                'purchaseRequest',
                 'creator',
                 'images',
             ]);
         });
     }
 
-    /**
-     * إنشاء عرض سعر مع عناصر متعددة
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Create an estimate with multiple items
+    |--------------------------------------------------------------------------
+    */
     public function createWithItems(
         int $purchaseRequestId,
         array $estimateData,
@@ -59,6 +185,7 @@ class EstimateService
     ): Estimate {
         return DB::transaction(function () use ($purchaseRequestId, $estimateData, $itemsData) {
 
+            // Validate that all request items belong to the given purchase request
             $requestItemIds = collect($itemsData)->pluck('request_item_id')->unique()->toArray();
 
             $requestItems = RequestItem::where('purchase_request_id', $purchaseRequestId)
@@ -67,9 +194,13 @@ class EstimateService
 
             if ($requestItems->count() !== count($requestItemIds)) {
                 throw ValidationException::withMessages([
-                    'items' => ['بعض المواد لا تنتمي إلى طلب الشراء المحدد'],
+                    'items' => ['Some items do not belong to the specified purchase request.'],
                 ]);
             }
+
+            // Extract images before creating the estimate
+            $images = $estimateData['images'] ?? null;
+            unset($estimateData['images']);
 
             $estimate = Estimate::create([
                 'purchase_request_id' => $purchaseRequestId,
@@ -82,6 +213,7 @@ class EstimateService
                 'created_by'          => auth()->id(),
             ]);
 
+            // Create estimate items and calculate total
             $totalAmount = 0;
 
             foreach ($itemsData as $itemData) {
@@ -100,28 +232,27 @@ class EstimateService
                     'total_price'     => $totalPrice,
                     'notes'           => $itemData['notes'] ?? null,
                 ]);
-                $images = $estimateData['images'] ?? null;
-                unset($estimateData['images']);
-                $this->handleImage($estimate, $images);
 
                 $totalAmount += $totalPrice;
             }
 
-            $estimate->update([
-                'total_amount' => $totalAmount,
-            ]);
+            // Update total amount after all items are created
+            $estimate->update(['total_amount' => $totalAmount]);
+
+            // Upload images once after all items are processed (not inside the loop)
+            $this->handleImage($estimate, $images);
 
             $this->logService->log(
                 action: 'create_estimate_with_items',
-                actionLabel: 'إنشاء عرض سعر مع عناصر',
+                actionLabel: 'Create estimate with multiple items',
                 subjectType: Estimate::class,
                 subjectId: $estimate->id,
                 newValues: $estimate->toArray(),
                 metadata: [
                     'purchase_request_id' => $purchaseRequestId,
-                    'items_count' => count($itemsData),
+                    'items_count'         => count($itemsData),
                 ],
-                module: 'عروض الأسعار'
+                module: 'Estimates'
             );
 
             return $estimate->load([
@@ -129,51 +260,51 @@ class EstimateService
                 'purchaseRequest',
                 'estimateItems.requestItem',
                 'creator',
-                'images'
+                'images',
             ]);
         });
     }
 
-    /**
-     * تحديث عرض سعر
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Update an existing estimate
+    |--------------------------------------------------------------------------
+    */
     public function update(Estimate $estimate, array $data): Estimate
     {
         return DB::transaction(function () use ($estimate, $data) {
+
             $oldValues = $estimate->toArray();
-            $images = $data['images'] ?? null;
-            unset($data['images']);
 
-            // ── 1. استخرج الـ items وأزلها من بيانات الـ estimate
+            // Extract images and items before updating
+            $images    = $data['images'] ?? null;
             $itemsData = $data['items'] ?? null;
-            unset($data['items']);
+            unset($data['images'], $data['items']);
 
-            // ── 2. حدّث بيانات الـ estimate الأساسية
+            // Update main estimate fields
             $estimate->update($data);
 
-            // ── 3. sync جدول estimate_items
+            // Sync estimate items if provided
             if ($itemsData !== null) {
 
-                // IDs المواد القادمة من الـ Frontend
+                // Determine which request item IDs are coming from the frontend
                 $incomingRequestItemIds = collect($itemsData)
                     ->pluck('request_item_id')
                     ->filter()
                     ->toArray();
 
-                // احذف المواد التي أُزيلت من القائمة
+                // Remove items that were deleted by the user
                 $estimate->estimateItems()
                     ->whereNotIn('request_item_id', $incomingRequestItemIds)
                     ->delete();
 
-                // حدّث أو أضف كل مادة
+                // Update or create each item
                 foreach ($itemsData as $itemData) {
                     $quantity  = $itemData['quantity'] ?? 1;
                     $unitPrice = $itemData['unit_price'] ?? 0;
 
                     $estimate->estimateItems()->updateOrCreate(
-                        [
-                            'request_item_id' => $itemData['request_item_id'],
-                        ],
+                        ['request_item_id' => $itemData['request_item_id']],
                         [
                             'item_name'   => $itemData['item_name'] ?? null,
                             'quantity'    => $quantity,
@@ -184,21 +315,23 @@ class EstimateService
                     );
                 }
 
-                // أعد حساب المجموع الكلي
+                // Recalculate total amount based on updated items
                 $estimate->update([
                     'total_amount' => $estimate->estimateItems()->sum('total_price'),
                 ]);
-                $this->handleImage($estimate, $images);
             }
+
+            // Upload new images if provided
+            $this->handleImage($estimate, $images);
 
             $this->logService->log(
                 action: 'update_estimate',
-                actionLabel: 'تحديث عرض سعر',
+                actionLabel: 'Update estimate',
                 subjectType: Estimate::class,
                 subjectId: $estimate->id,
                 oldValues: $oldValues,
                 newValues: $estimate->fresh()->toArray(),
-                module: 'عروض الأسعار'
+                module: 'Estimates'
             );
 
             return $estimate->load([
@@ -212,172 +345,52 @@ class EstimateService
         });
     }
 
-    /**
-     * حذف عرض سعر
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Delete an estimate and its related images from storage
+    |--------------------------------------------------------------------------
+    */
     public function delete(Estimate $estimate): bool
     {
         return DB::transaction(function () use ($estimate) {
 
             $oldValues = $estimate->toArray();
+
+            // Delete image files from storage before removing DB records
+            foreach ($estimate->images as $image) {
+                Storage::disk('public')->delete($image->file_path);
+            }
+
+            $estimate->images()->delete();
+
             $deleted = $estimate->delete();
 
             $this->logService->log(
                 action: 'delete_estimate',
-                actionLabel: 'حذف عرض سعر',
+                actionLabel: 'Delete estimate',
                 subjectType: Estimate::class,
                 subjectId: $estimate->id,
                 oldValues: $oldValues,
                 status: $deleted ? 'success' : 'failed',
-                module: 'عروض الأسعار'
+                module: 'Estimates'
             );
 
             return $deleted;
         });
     }
 
-    /**
-     * جلب جميع عروض الأسعار مع الفلاتر
-     */
-    public function getAll(array $filters = []): Builder
+    /*
+    |--------------------------------------------------------------------------
+    | Handle image uploads for an estimate
+    |--------------------------------------------------------------------------
+    */
+    protected function handleImage(Estimate $estimate, ?array $images): void
     {
-        $q = Estimate::with([
-            'vendor',
-            'purchaseRequest',
-            'estimateItems.requestItem',
-            'creator',
-            'images.uploader'
-        ]);
-
-        if (!empty($filters['vendor_id'])) {
-            $q->where('vendor_id', $filters['vendor_id']);
-        }
-
-        if (!empty($filters['department_id'])) {
-            $q->whereHas('purchaseRequest', function ($query) use ($filters) {
-                $query->where('department_id', $filters['department_id']);
-            });
-        }
-
-        if (!empty($filters['request_title'])) {
-            $q->whereHas('purchaseRequest', function ($query) use ($filters) {
-                $query->where('title', 'LIKE', '%' . $filters['request_title'] . '%');
-            });
-        }
-
-        if (!empty($filters['status'])) {
-            $q->where('status', $filters['status']);
-        }
-
-        $this->logService->log(
-            action: 'view_estimates',
-            actionLabel: 'عرض جميع عروض الأسعار',
-            subjectType: Estimate::class,
-            metadata: ['filters' => $filters],
-            module: 'عروض الأسعار'
-        );
-
-        return $q->latest('id');
-    }
-
-    /**
-     * جلب عرض سعر محدد
-     */
-    public function getById(Estimate $estimate): Estimate
-    {
-        $estimate = $estimate->load([
-            'vendor',
-            'purchaseRequest',
-            'requestItem',
-            'estimateItems.requestItem',
-            'creator',
-            'images'
-        ]);
-
-        $this->logService->log(
-            action: 'view_estimate',
-            actionLabel: 'عرض عرض سعر',
-            subjectType: Estimate::class,
-            subjectId: $estimate->id,
-            module: 'عروض الأسعار'
-        );
-
-        return $estimate;
-    }
-
-    /**
-     * جلب عرض سعر مرتبط بمادة معينة
-     */
-    public function getByItem(int $requestItemId): ?Estimate
-    {
-        $estimate = Estimate::with([
-            'vendor',
-            'purchaseRequest',
-            'estimateItems.requestItem',
-            'images.uploader'
-        ])
-            ->where('request_item_id', $requestItemId)
-            ->latest()
-            ->first();
-
-        $this->logService->log(
-            action: 'view_estimate_by_item',
-            actionLabel: 'عرض عرض سعر حسب المادة',
-            subjectType: Estimate::class,
-            subjectId: $estimate?->id,
-            metadata: ['request_item_id' => $requestItemId],
-            module: 'عروض الأسعار'
-        );
-
-        return $estimate;
-    }
-
-    /**
-     * إنشاء عرض سعر لمادة واحدة
-     */
-    public function createForItem(int $requestItemId, array $data): Estimate
-    {
-        return DB::transaction(function () use ($requestItemId, $data) {
-
-            $item = RequestItem::findOrFail($requestItemId);
-
-            $estimate = Estimate::create([
-                'purchase_request_id' => $item->purchase_request_id,
-                'request_item_id'     => $item->id,
-                'vendor_id'           => $data['vendor_id'] ?? null,
-                'estimate_date'       => $data['estimate_date'] ?? now(),
-                'total_amount'        => $data['total_amount'] ?? 0,
-                'notes'               => $data['notes'] ?? null,
-                'status'              => $data['status'] ?? 'pending',
-                'created_by'          => auth()->id(),
-            ]);
-
-            $this->logService->log(
-                action: 'create_estimate_for_item',
-                actionLabel: 'إنشاء عرض سعر لمادة',
-                subjectType: Estimate::class,
-                subjectId: $estimate->id,
-                newValues: $estimate->toArray(),
-                metadata: ['request_item_id' => $requestItemId],
-                module: 'عروض الأسعار'
-            );
-
-            return $estimate->load([
-                'vendor',
-                'requestItem',
-                'purchaseRequest',
-                'creator',
-                'images'
-            ]);
-        });
-    }
-
-    protected function handleImage(Estimate $estimate, ?array $images) {
         if (!$images) {
             return;
         }
 
-        foreach($images as $image) {
+        foreach ($images as $image) {
             if (!$image instanceof UploadedFile) {
                 continue;
             }
@@ -385,16 +398,16 @@ class EstimateService
             $fileName = Str::uuid() . '.' . $image->getClientOriginalExtension();
 
             $path = $image->storeAs(
-                "estimate/{$estimate->id}",
+                "estimates/{$estimate->id}",
                 $fileName,
                 'public'
             );
 
             $estimate->images()->create([
-                'file_name' => $fileName,
-                'file_path' => $path,
-                'file_type' => $image->getClientMimeType(),
-                'file_size' => $image->getSize(),
+                'file_name'   => $fileName,
+                'file_path'   => $path,
+                'file_type'   => $image->getClientMimeType(),
+                'file_size'   => $image->getSize(),
                 'uploaded_by' => auth()->id(),
             ]);
         }

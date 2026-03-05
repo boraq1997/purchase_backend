@@ -8,9 +8,8 @@ class StoreEstimateWithItemsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // $user = auth()->user();
-        // return $user && $user->can('EstimateItem-create');
-        return true;
+        $user = auth()->user();
+        return $user && $user->can('create-EstimateItem');
     }
 
     public function rules(): array

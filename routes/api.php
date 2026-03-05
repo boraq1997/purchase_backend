@@ -97,16 +97,22 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ================= ESTIMATES =================
-    Route::prefix('request-items/{requestItem}')->group(function () {
-        Route::post('estimates', [EstimateController::class, 'store'])->middleware('permission:create-Estimate');
-        Route::get('estimates', [EstimateController::class, 'indexForItem'])->middleware('permission:view-Estimate');
+    // ================= ESTIMATES =================
+    Route::prefix('estimates')->group(function () {
+        Route::get('/',                  [EstimateController::class, 'index'])->middleware('permission:view-Estimate');
+        Route::get('/by-item/{item}',    [EstimateController::class, 'getByItem'])->middleware('permission:view-Estimate');
+        Route::get('/{estimate}',        [EstimateController::class, 'show'])->middleware('permission:view-Estimate');
+        Route::put('/{estimate}',        [EstimateController::class, 'update'])->middleware('permission:edit-Estimate');
+        Route::delete('/{estimate}',     [EstimateController::class, 'destroy'])->middleware('permission:delete-Estimate');
     });
 
-    Route::get('/estimates', [EstimateController::class, 'index'])->middleware('permission:view-Estimate');
+    Route::prefix('request-items/{requestItem}')->group(function () {
+        Route::post('estimates', [EstimateController::class, 'storeForItem'])->middleware('permission:create-Estimate');
+        Route::get('estimates',  [EstimateController::class, 'indexForItem'])->middleware('permission:view-Estimate');
+    });
 
-    Route::get('/estimates/by-item/{item}', [EstimateController::class, 'getByItem'])->middleware('permission:view-Estimate');
-
-    Route::post('/purchase-requests/{purchaseRequests}/estimates/with-items',[EstimateController::class, 'storeWithItems'])->middleware('permission:create-Estimate');
+    Route::post('/purchase-requests/{purchaseRequest}/estimates/with-items', [EstimateController::class, 'storeWithItems'])
+        ->middleware('permission:create-Estimate');
 
     // ================= ESTIMATE ITEMS =================
     Route::prefix('estimate-items')->group(function () {
