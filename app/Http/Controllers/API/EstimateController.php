@@ -69,6 +69,16 @@ class EstimateController extends Controller
     }
 
     /**
+    * GET /purchase-requests/{purchaseRequest}/estimates
+    */
+    public function getByPurchaseRequest(int $purchaseRequest)
+    {
+        $estimates = $this->service->getByPurchaseRequest($purchaseRequest);
+
+        return EstimateResource::collection($estimates);
+    }
+
+    /**
      * Create a simple estimate for a single request item
      * POST /request-items/{requestItem}/estimates
      */

@@ -125,6 +125,18 @@ class EstimateService
         return $estimate;
     }
 
+    public function getByPurchaseRequest(int $purchaseRequestId)
+    {
+        return Estimate::with([
+            'vendor',
+            'estimateItems.requestItem.unit',
+        ])
+        ->where('purchase_request_id', $purchaseRequestId)
+        ->where('status', 'accepted')
+        ->latest('id')
+        ->get();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Create a simple estimate for a single request item

@@ -15,36 +15,42 @@ class StoreProcurementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'estimate_id'       => 'required|exists:estimates,id',
-            'purchase_request_id' => 'required|exists:purchase_requests,id',
-            'procurement_number' => 'required|string|max:100|unique:procurements,procurement_number',
-            'supplier_name'     => 'required|string|max:255',
-            'total_cost'        => 'nullable|numeric|min:0',
-            'currency'          => 'nullable|string|max:10',
-            'status'            => 'nullable|in:pending,approved,rejected,completed',
-            'notes'             => 'nullable|string|max:500',
-            'items'             => 'nullable|array',
-            'items.*.estimate_item_id' => 'required_with:items|exists:estimate_items,id',
-            'items.*.quantity'  => 'required_with:items|integer|min:1',
-            'items.*.unit_price'=> 'required_with:items|numeric|min:0',
+            'purchase_request_id'          => 'required|exists:purchase_requests,id',
+            'reference_no'                 => 'nullable|string|max:100|unique:procurements,reference_no',
+            'purchase_date'                => 'nullable|date',
+            'status'                       => 'nullable|in:in_progress,completed,cancelled',
+            'notes'                        => 'nullable|string',
+
+            'items'                        => 'required|array|min:1',
+            'items.*.estimate_id'          => 'required|exists:estimates,id',
+            'items.*.estimate_item_id'     => 'required|exists:estimate_items,id',
+            'items.*.item_name'            => 'required|string|max:255',
+            'items.*.unit_id'              => 'nullable|exists:units,id',
+            'items.*.quantity'             => 'required|numeric|min:1',
+            'items.*.unit_price'           => 'nullable|numeric|min:0',
+            'items.*.purchase_price'       => 'required|numeric|min:0',
+            'items.*.estimate_price'       => 'required|numeric|min:0',
+            'items.*.notes'                => 'nullable|string|max:500',
         ];
     }
 
-    public function messages()
+    public function messages(): array
     {
         return [
-            'estimate_id.required'        => 'estimate id is required',
-            'estimate_id.exists'          => 'estimate not found',
-            'purchase_request_id.required'=> 'purchase request id is required',
-            'purchase_request_id.exists'  => 'purchase request not found',
-            'procurement_number.required' => 'procurement number is required',
-            'procurement_number.unique'   => 'procurement number already exists',
-            'supplier_name.required'      => 'supplier name is required',
-            'items.array'                 => 'items must be an array',
-            'items.*.estimate_item_id.required_with' => 'estimate item id is required',
-            'items.*.estimate_item_id.exists' => 'estimate item not found',
-            'items.*.quantity.required_with' => 'item quantity is required',
-            'items.*.unit_price.required_with' => 'item unit price is required',
+            'purchase_request_id.required'      => 'يرجى اختيار طلب الشراء',
+            'purchase_request_id.exists'        => 'طلب الشراء غير موجود',
+            'items.required'                    => 'يجب إضافة مادة واحدة على الأقل',
+            'items.min'                         => 'يجب إضافة مادة واحدة على الأقل',
+            'items.*.estimate_id.required'      => 'يرجى تحديد عرض السعر',
+            'items.*.estimate_id.exists'        => 'عرض السعر غير موجود',
+            'items.*.estimate_item_id.required' => 'يرجى تحديد المادة من عرض السعر',
+            'items.*.estimate_item_id.exists'   => 'المادة غير موجودة في عرض السعر',
+            'items.*.item_name.required'        => 'اسم المادة مطلوب',
+            'items.*.quantity.required'         => 'الكمية مطلوبة',
+            'items.*.quantity.min'              => 'الكمية يجب أن تكون أكبر من صفر',
+            'items.*.purchase_price.required'   => 'سعر الشراء مطلوب',
+            'items.*.purchase_price.min'        => 'سعر الشراء يجب أن يكون أكبر من أو يساوي صفر',
+            'items.*.estimate_price.required'   => 'سعر عرض السعر مطلوب',
         ];
     }
 }

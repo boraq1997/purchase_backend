@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\PurchaseRequestImageController;
 use App\Http\Controllers\API\UnitController;
+use App\Http\Controllers\API\EstimateImageController;
 
 // ================= LOGIN =================
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -97,7 +98,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ================= ESTIMATES =================
-    // ================= ESTIMATES =================
     Route::prefix('estimates')->group(function () {
         Route::get('/',                  [EstimateController::class, 'index'])->middleware('permission:view-Estimate');
         Route::get('/by-item/{item}',    [EstimateController::class, 'getByItem'])->middleware('permission:view-Estimate');
@@ -110,6 +110,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('estimates', [EstimateController::class, 'storeForItem'])->middleware('permission:create-Estimate');
         Route::get('estimates',  [EstimateController::class, 'indexForItem'])->middleware('permission:view-Estimate');
     });
+    Route::get('/purchase-requests/{purchaseRequest}/estimates',
+    [EstimateController::class, 'getByPurchaseRequest'])
+    ->middleware('permission:view-Estimate');
 
     Route::post('/purchase-requests/{purchaseRequest}/estimates/with-items', [EstimateController::class, 'storeWithItems'])
         ->middleware('permission:create-Estimate');
@@ -122,6 +125,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{estimateItem}', [EstimateItemController::class, 'update'])->middleware('permission:edit-EstimateItem');
         Route::delete('/{estimateItem}', [EstimateItemController::class, 'destroy'])->middleware('permission:delete-EstimateItem');
     });
+
+    Route::delete('estimate-images/{estimateImage}',[ EstimateImageController::class, 'destroy']);
 
     // ================= PURCHASE REQUESTS =================
     Route::prefix('purchase-requests')->group(function () {
@@ -190,6 +195,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [ProcurementController::class, 'store'])->middleware('permission:create-Procurement');
         Route::put('/{procurement}', [ProcurementController::class, 'update'])->middleware('permission:edit-Procurement');
         Route::delete('/{procurement}', [ProcurementController::class, 'destroy'])->middleware('permission:delete-Procurement');
+        Route::patch('/{procurement}/complete', [ProcurementController::class, 'markAsCompleted'])->middleware('permission:edit-Procurement'); // ← أضف هذا
     });
 
     // ================= PROCUREMENT ITEMS =================

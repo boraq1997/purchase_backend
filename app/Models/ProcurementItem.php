@@ -12,18 +12,24 @@ class ProcurementItem extends Model
     protected $fillable = [
         'procurement_id',
         'request_item_id',
+        'estimate_item_id',
+        'estimate_id',
         'item_name',
-        'unit',
+        'unit_id',
         'quantity',
         'unit_price',
-        'difference',
+        'purchase_price',
+        'estimate_price',
         'notes',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
-        'unit_price' => 'decimal:2',
-        'difference' => 'decimal:2',
+        'quantity'       => 'decimal:2',
+        'unit_price'     => 'decimal:2',
+        'purchase_price' => 'decimal:2',
+        'estimate_price' => 'decimal:2',
+        'difference'     => 'decimal:2',
+        'total_price'    => 'decimal:2',
     ];
 
     /*
@@ -42,20 +48,18 @@ class ProcurementItem extends Model
         return $this->belongsTo(RequestItem::class);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | الأحداث (Booted)
-    |--------------------------------------------------------------------------
-    */
-
-    protected static function booted()
+    public function estimateItem()
     {
-        static::saving(function ($item) {
-            // في حالة كان هناك سعر تقديري من الطلب
-            $requestItem = $item->requestItem;
-            if ($requestItem) {
-                $item->difference = ($item->unit_price ?? 0) - ($requestItem->estimated_unit_price ?? 0);
-            }
-        });
+        return $this->belongsTo(EstimateItem::class);
+    }
+
+    public function estimate()
+    {
+        return $this->belongsTo(Estimate::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
     }
 }

@@ -17,31 +17,39 @@ class UpdateProcurementRequest extends FormRequest
         $procurementId = $this->route('procurement');
 
         return [
-            'estimate_id'         => 'sometimes|required|exists:estimates,id',
-            'purchase_request_id' => 'sometimes|required|exists:purchase_requests,id',
-            'procurement_number'  => "sometimes|required|string|max:100|unique:procurements,procurement_number,{$procurementId}",
-            'supplier_name'       => 'sometimes|required|string|max:255',
-            'total_cost'          => 'nullable|numeric|min:0',
-            'currency'            => 'nullable|string|max:10',
-            'status'              => 'nullable|in:pending,approved,rejected,completed',
-            'notes'               => 'nullable|string|max:500',
-            'items'               => 'nullable|array',
-            'items.*.id'          => 'nullable|exists:procurement_items,id',
-            'items.*.estimate_item_id' => 'required_with:items|exists:estimate_items,id',
-            'items.*.quantity'    => 'required_with:items|integer|min:1',
-            'items.*.unit_price'  => 'required_with:items|numeric|min:0',
+            'purchase_request_id'          => 'sometimes|exists:purchase_requests,id',
+            'reference_no'                 => "sometimes|nullable|string|max:100|unique:procurements,reference_no,{$procurementId}",
+            'purchase_date'                => 'sometimes|nullable|date',
+            'status'                       => 'sometimes|nullable|in:in_progress,completed,cancelled',
+            'notes'                        => 'nullable|string',
+
+            'items'                        => 'sometimes|array|min:1',
+            'items.*.estimate_id'          => 'required_with:items|exists:estimates,id',
+            'items.*.estimate_item_id'     => 'required_with:items|exists:estimate_items,id',
+            'items.*.item_name'            => 'required_with:items|string|max:255',
+            'items.*.unit_id'              => 'nullable|exists:units,id',
+            'items.*.quantity'             => 'required_with:items|numeric|min:1',
+            'items.*.unit_price'           => 'nullable|numeric|min:0',
+            'items.*.purchase_price'       => 'required_with:items|numeric|min:0',
+            'items.*.estimate_price'       => 'required_with:items|numeric|min:0',
+            'items.*.notes'                => 'nullable|string|max:500',
         ];
     }
 
-    public function messages()
+    public function messages(): array
     {
         return [
-            'estimate_id.exists'          => 'estimate not found',
-            'purchase_request_id.exists'  => 'purchase request not found',
-            'procurement_number.unique'   => 'procurement number already exists',
-            'supplier_name.required'      => 'supplier name is required',
-            'items.array'                 => 'items must be an array',
-            'items.*.id.exists'           => 'invalid procurement item id',
+            'purchase_request_id.exists'        => 'طلب الشراء غير موجود',
+            'reference_no.unique'               => 'رقم المرجع مستخدم مسبقاً',
+            'items.min'                         => 'يجب إضافة مادة واحدة على الأقل',
+            'items.*.estimate_id.required_with' => 'يرجى تحديد عرض السعر',
+            'items.*.estimate_id.exists'        => 'عرض السعر غير موجود',
+            'items.*.estimate_item_id.required_with' => 'يرجى تحديد المادة من عرض السعر',
+            'items.*.estimate_item_id.exists'   => 'المادة غير موجودة في عرض السعر',
+            'items.*.item_name.required_with'   => 'اسم المادة مطلوب',
+            'items.*.quantity.required_with'    => 'الكمية مطلوبة',
+            'items.*.purchase_price.required_with' => 'سعر الشراء مطلوب',
+            'items.*.estimate_price.required_with' => 'سعر عرض السعر مطلوب',
         ];
     }
 }

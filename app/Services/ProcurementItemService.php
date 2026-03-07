@@ -13,7 +13,7 @@ class ProcurementItemService
      */
     public function getAll(array $filters = []): Collection
     {
-        $q = ProcurementItem::with('procurement');
+        $q = ProcurementItem::with('procurement', 'unit');
 
         if (!empty($filters['procurement_id'])) {
             $q->where('procurement_id', $filters['procurement_id']);
@@ -32,7 +32,7 @@ class ProcurementItemService
      */
     public function getById(ProcurementItem $item): ProcurementItem
     {
-        return $item->load('procurement');
+        return $item->load('procurement'. 'unit ');
     }
 
     /**

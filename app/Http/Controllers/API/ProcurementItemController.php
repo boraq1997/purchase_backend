@@ -36,7 +36,7 @@ class ProcurementItemController extends Controller
     public function show(ProcurementItem $procurementItem)
     {
         $item = $this->service->getById($procurementItem);
-        return new ProcurementItemResource($item->load('procurement'));
+        return new ProcurementItemResource($item->load('procurement', 'unit'));
     }
 
     /**
@@ -45,7 +45,7 @@ class ProcurementItemController extends Controller
     public function store(StoreProcurementItemRequest $request)
     {
         $item = $this->service->create($request->validated());
-        return new ProcurementItemResource($item->load('procurement'));
+        return new ProcurementItemResource($item->load('procurement', 'unit'));
     }
 
     /**
@@ -54,7 +54,7 @@ class ProcurementItemController extends Controller
     public function update(UpdateProcurementItemRequest $request, ProcurementItem $procurementItem)
     {
         $item = $this->service->update($procurementItem, $request->validated());
-        return new ProcurementItemResource($item->load('procurement'));
+        return new ProcurementItemResource($item->load('procurement', 'unit'));
     }
 
     /**

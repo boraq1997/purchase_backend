@@ -10,29 +10,18 @@ return new class extends Migration
     {
         Schema::create('procurement_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('procurement_id');
-            $table->foreignId('request_item_id')->nullable();
-            $table->foreignId('estimate_item_id')->nullable();
+            $table->foreignId('procurement_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('request_item_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('estimate_item_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('estimate_id')->nullable()->constrained()->nullOnDelete();
             $table->string('item_name');
-            $table->enum('unit', [
-                'piece',     // قطعة
-                'box',       // صندوق
-                'carton',    // كارتون
-                'pack',      // حزمة
-                'set',       // طقم
-                'kg',        // كيلوجرام
-                'g',         // غرام
-                'ton',       // طن
-                'meter',     // متر
-                'cm',        // سنتيمتر
-                'roll',      // لفة
-                'liter',     // لتر
-                'ml',        // ملي لتر
-            ])->nullable();
+            $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
             $table->decimal('quantity', 10, 2)->default(0);
             $table->decimal('unit_price', 14, 2)->default(0);
-            $table->decimal('total_price', 14, 2)->virtualAs('quantity * unit_price');
-            $table->decimal('difference', 14, 2)->nullable();
+            $table->decimal('purchase_price', 14, 2)->default(0);
+            $table->decimal('estimate_price', 14, 2)->default(0);
+            $table->decimal('total_price', 14, 2)->virtualAs('quantity * purchase_price');
+            $table->decimal('difference', 14, 2)->virtualAs('purchase_price - estimate_price');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

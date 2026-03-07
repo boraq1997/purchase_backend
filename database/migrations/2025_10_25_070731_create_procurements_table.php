@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('procurements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_request_id');
-            $table->foreignId('estimate_id')->nullable();
+            //$table->foreignId('estimate_id')->nullable();
             $table->string('reference_no')->nullable()->unique();
             $table->date('purchase_date')->nullable();
             $table->decimal('total_amount', 14, 2)->default(0);

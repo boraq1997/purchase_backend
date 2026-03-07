@@ -36,10 +36,10 @@ class Procurement extends Model
         return $this->belongsTo(PurchaseRequest::class);
     }
 
-    public function estimate()
-    {
-        return $this->belongsTo(Estimate::class);
-    }
+    // public function estimate()
+    // {
+    //     return $this->belongsTo(Estimate::class);
+    // }
 
     public function items()
     {
