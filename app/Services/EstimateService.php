@@ -132,7 +132,6 @@ class EstimateService
             'estimateItems.requestItem.unit',
         ])
         ->where('purchase_request_id', $purchaseRequestId)
-        ->where('status', 'accepted')
         ->latest('id')
         ->get();
     }

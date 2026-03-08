@@ -69,7 +69,6 @@ return new class extends Migration
         /** procurements */
         Schema::table('procurements', function (Blueprint $table) {
             $table->foreign('purchase_request_id')->references('id')->on('purchase_requests')->cascadeOnDelete();
-            $table->foreign('estimate_id')->references('id')->on('estimates')->nullOnDelete();
             $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
         });
 
@@ -78,6 +77,8 @@ return new class extends Migration
             $table->foreign('procurement_id')->references('id')->on('procurements')->cascadeOnDelete();
             $table->foreign('request_item_id')->references('id')->on('request_items')->nullOnDelete();
             $table->foreign('estimate_item_id')->references('id')->on('estimate_items')->nullOnDelete();
+            $table->foreign('estimate_id')->references('id')->on('estimates')->nullOnDelete(); // ← جديد
+            $table->foreign('unit_id')->references('id')->on('units')->nullOnDelete();         // ← جديد
         });
 
         /** warehouse_checks */

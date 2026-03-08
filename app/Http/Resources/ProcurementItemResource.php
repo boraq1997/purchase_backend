@@ -20,10 +20,13 @@ class ProcurementItemResource extends JsonResource
             'difference'     => $this->difference,
             'notes'          => $this->notes,
 
-            'unit'           => $this->whenLoaded('unit', fn() => [
-                'id'   => $this->unit->id,
-                'name' => $this->unit->name,
-            ]),
+            'unit' => $this->whenLoaded('unit', function () {
+                if (!$this->unit || is_string($this->unit)) return null;
+                return [
+                    'id'   => $this->unit->id,
+                    'name' => $this->unit->name,
+                ];
+            }),
 
             'estimate'       => $this->whenLoaded('estimate', fn() => [
                 'id'           => $this->estimate->id,

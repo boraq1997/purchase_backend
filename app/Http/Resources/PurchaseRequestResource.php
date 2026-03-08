@@ -68,6 +68,7 @@ class PurchaseRequestResource extends JsonResource
                     return [
                         'id'                        => $item->id,
                         'item_name'                 => $item->item_name,
+                        'specifications'            => $item->specifications,
                         'quantity'                  => $item->quantity,
                         'unit'                      => $item->unit,
                         'estimated_unit_price'      => $item->estimated_unit_price,

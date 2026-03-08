@@ -30,7 +30,7 @@ class StorePurchaseRequest extends FormRequest
             'items.*.quantity'              => 'required_with:items|integer|min:1',
             'items.*.unit_id'               => 'nullable|exists:units,id',
             'items.*.estimated_unit_price'  => 'nullable|numeric|min:0',
-            'items.*.notes'                 => 'nullable|string|max:500',
+            'items.*.specifications'        => 'nullable|string|max:500',
         ];
     }
 

@@ -7,9 +7,6 @@ use Spatie\Permission\Models\Permission;
 
 class PermissionsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $modules = [
@@ -32,7 +29,7 @@ class PermissionsSeeder extends Seeder
         foreach ($modules as $module) {
             foreach ($actions as $action) {
                 Permission::firstOrCreate([
-                    'name' => "{$action}-{$module}",
+                    'name'       => "{$action}-{$module}",
                     'guard_name' => 'sanctum',
                 ]);
             }
@@ -45,7 +42,7 @@ class PermissionsSeeder extends Seeder
 
         foreach ($extraPermissions as $perm) {
             Permission::firstOrCreate([
-                'name' => $perm,
+                'name'       => $perm,
                 'guard_name' => 'sanctum',
             ]);
         }

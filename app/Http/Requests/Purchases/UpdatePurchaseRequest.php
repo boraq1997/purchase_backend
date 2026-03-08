@@ -28,7 +28,7 @@ class UpdatePurchaseRequest extends FormRequest
             'items.*.item_name'    => 'required_with:items|string|max:255',
             'items.*.quantity'=> 'required_with:items|integer|min:1',
             'items.*.unit'    => 'nullable|exists:units,id',
-            'items.*.notes'   => 'nullable|string|max:500',
+            'items.*.specifications'   => 'nullable|string|max:500',
         ];
     }
 
