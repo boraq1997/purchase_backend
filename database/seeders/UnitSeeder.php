@@ -10,39 +10,22 @@ class UnitSeeder extends Seeder
     public function run(): void
     {
         $units = [
-
-            // الوزن
-            ['name' => 'كيلوغرام', 'description' => 'وحدة قياس الوزن', 'code' => 'kg'],
-            ['name' => 'غرام', 'description' => 'وحدة قياس الوزن', 'code' => 'g'],
-            ['name' => 'طن', 'description' => 'وحدة قياس الوزن', 'code' => 'ton'],
-
-            // الطول
-            ['name' => 'متر', 'description' => 'وحدة قياس الطول', 'code' => 'm'],
-            ['name' => 'سنتيمتر', 'description' => 'وحدة قياس الطول', 'code' => 'cm'],
-            ['name' => 'مليمتر', 'description' => 'وحدة قياس الطول', 'code' => 'mm'],
-            ['name' => 'كيلومتر', 'description' => 'وحدة قياس الطول', 'code' => 'km'],
-
-            // الحجم
-            ['name' => 'لتر', 'description' => 'وحدة قياس الحجم', 'code' => 'l'],
-            ['name' => 'مليلتر', 'description' => 'وحدة قياس الحجم', 'code' => 'ml'],
-
-            // العد
-            ['name' => 'قطعة', 'description' => 'وحدة عد', 'code' => 'pcs'],
-            ['name' => 'علبة', 'description' => 'وحدة تعبئة', 'code' => 'box'],
-            ['name' => 'كرتون', 'description' => 'وحدة تعبئة', 'code' => 'carton'],
-            ['name' => 'حبة', 'description' => 'وحدة عد', 'code' => 'item'],
-            ['name' => 'طقم', 'description' => 'مجموعة قطع', 'code' => 'set'],
-
+            ['name' => 'قطعة', 'code' => 'pcs', 'description' => 'وحدة عد للقطع'],
+            ['name' => 'كيلوغرام', 'code' => 'kg', 'description' => 'وحدة قياس الوزن'],
+            ['name' => 'غرام', 'code' => 'g', 'description' => 'وحدة قياس الوزن الصغيرة'],
+            ['name' => 'طن', 'code' => 'ton', 'description' => 'وحدة قياس الوزن الكبيرة'],
+            ['name' => 'متر', 'code' => 'm', 'description' => 'وحدة قياس الطول'],
+            ['name' => 'سنتيمتر', 'code' => 'cm', 'description' => 'وحدة قياس الطول الصغيرة'],
+            ['name' => 'كيلومتر', 'code' => 'km', 'description' => 'وحدة قياس المسافة'],
+            ['name' => 'لتر', 'code' => 'l', 'description' => 'وحدة قياس السوائل'],
+            ['name' => 'مليلتر', 'code' => 'ml', 'description' => 'وحدة قياس السوائل الصغيرة'],
+            ['name' => 'علبة', 'code' => 'box', 'description' => 'وحدة تعبئة'],
+            ['name' => 'كرتون', 'code' => 'carton', 'description' => 'وحدة تعبئة كبيرة'],
+            ['name' => 'طقم', 'code' => 'set', 'description' => 'مجموعة قطع'],
+            ['name' => 'رول', 'code' => 'roll', 'description' => 'وحدة لفائف'],
+            ['name' => 'كيس', 'code' => 'bag', 'description' => 'وحدة أكياس'],
         ];
 
-        foreach ($units as $unit) {
-            DB::table('units')->insert([
-                'name' => $unit['name'],
-                'description' => $unit['description'],
-                'code' => $unit['code'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        DB::table('units')->insert($units);
     }
 }

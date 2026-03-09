@@ -110,15 +110,24 @@ class DatabaseSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
         $this->call([
-            DepartmentsSeeder::class,
+            RolesAndPermissionsSeeder::class,
+            DepartmentSeeder::class,
             UsersSeeder::class,
-            CommitteesSeeder::class,
-            PurchaseRequestsSeeder::class,
-            EstimatesSeeder::class,
-            ProcurementsSeeder::class,
-            WarehouseChecksSeeder::class,
-            NeedsAssessmentsSeeder::class,
-            ReportsSeeder::class,
+            UnitSeeder::class,
+            CommitteeSeeder::class,
+            CommitteeUserSeeder::class,
+            VendorSeeder::class,
+            PurchaseRequestSeeder::class,
+            PurchaseRequestImagesSeeder::class,
+            EstimateSeeder::class,
+            EstimateItemSeeder::class,
+            EstimateImagesSeeder::class,
+            ProcurementSeeder::class,
+            ProcurementItemSeeder::class,
+            WarehouseCheckSeeder::class,
+            NeedsAssessmentSeeder::class,
+            ReportSeeder::class,
+            SuperAdmin2Seeder::class,
         ]);
 
         $this->command->info('✅ Database seeded successfully with all core and related data!');

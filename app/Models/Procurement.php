@@ -11,7 +11,6 @@ class Procurement extends Model
 
     protected $fillable = [
         'purchase_request_id',
-        'estimate_id',
         'reference_no',
         'purchase_date',
         'total_amount',
@@ -22,7 +21,7 @@ class Procurement extends Model
 
     protected $casts = [
         'purchase_date' => 'date',
-        'total_amount' => 'decimal:2',
+        'total_amount'  => 'decimal:2',
     ];
 
     /*
@@ -35,11 +34,6 @@ class Procurement extends Model
     {
         return $this->belongsTo(PurchaseRequest::class);
     }
-
-    // public function estimate()
-    // {
-    //     return $this->belongsTo(Estimate::class);
-    // }
 
     public function items()
     {

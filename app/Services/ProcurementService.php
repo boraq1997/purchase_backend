@@ -58,30 +58,24 @@ class ProcurementService
 
             foreach ($data['items'] as $item) {
                 $procurement->items()->create([
-                    'estimate_id'      => $item['estimate_id'],
-                    'estimate_item_id' => $item['estimate_item_id'],
+                    'request_item_id'  => $item['request_item_id'] ?? null,
+                    'estimate_id'      => $item['estimate_id'] ?? null,
+                    'estimate_item_id' => $item['estimate_item_id'] ?? null,
                     'item_name'        => $item['item_name'],
                     'unit_id'          => $item['unit_id'] ?? null,
                     'quantity'         => $item['quantity'],
                     'unit_price'       => $item['unit_price'] ?? 0,
                     'purchase_price'   => $item['purchase_price'],
-                    'estimate_price'   => $item['estimate_price'],
+                    'estimate_price'   => $item['estimate_price'] ?? 0,
                     'notes'            => $item['notes'] ?? null,
                 ]);
             }
 
-            // تحديث حالة عروض الأسعار
-            $selectedEstimateIds = collect($data['items'])
-                ->pluck('estimate_id')
-                ->unique()
-                ->toArray();
-
-            Estimate::whereIn('id', $selectedEstimateIds)
-                ->update(['status' => 'accepted']);
-
-            Estimate::where('purchase_request_id', $data['purchase_request_id'])
-                ->whereNotIn('id', $selectedEstimateIds)
-                ->update(['status' => 'rejected']);
+            // تحديث حالة عروض الأسعار بناءً على selected_estimate_ids
+            $this->syncEstimateStatuses(
+                purchaseRequestId: $data['purchase_request_id'],
+                selectedIds: $data['selected_estimate_ids'] ?? [],
+            );
 
             $procurement->update([
                 'total_amount' => $procurement->items()->sum('total_price'),
@@ -113,18 +107,24 @@ class ProcurementService
 
             if (isset($data['items']) && is_array($data['items'])) {
 
+                // إعادة عروض الأسعار القديمة إلى pending قبل الحذف
                 $oldEstimateIds = $procurement->items()
+                    ->whereNotNull('estimate_id')
                     ->pluck('estimate_id')
                     ->unique()
+                    ->filter()
+                    ->values()
                     ->toArray();
 
-                Estimate::whereIn('id', $oldEstimateIds)
-                    ->update(['status' => 'pending']);
+                if (!empty($oldEstimateIds)) {
+                    Estimate::whereIn('id', $oldEstimateIds)->update(['status' => 'pending']);
+                }
 
                 $procurement->items()->delete();
 
                 foreach ($data['items'] as $item) {
                     $procurement->items()->create([
+                        'request_item_id'  => $item['request_item_id'] ?? null,
                         'estimate_id'      => $item['estimate_id'] ?? null,
                         'estimate_item_id' => $item['estimate_item_id'] ?? null,
                         'item_name'        => $item['item_name'],
@@ -137,17 +137,10 @@ class ProcurementService
                     ]);
                 }
 
-                $selectedEstimateIds = collect($data['items'])
-                    ->pluck('estimate_id')
-                    ->unique()
-                    ->toArray();
-
-                Estimate::whereIn('id', $selectedEstimateIds)
-                    ->update(['status' => 'accepted']);
-
-                Estimate::where('purchase_request_id', $procurement->purchase_request_id)
-                    ->whereNotIn('id', $selectedEstimateIds)
-                    ->update(['status' => 'rejected']);
+                $this->syncEstimateStatuses(
+                    purchaseRequestId: $procurement->purchase_request_id,
+                    selectedIds: $data['selected_estimate_ids'] ?? [],
+                );
 
                 $procurement->update([
                     'total_amount' => $procurement->items()->sum('total_price'),
@@ -171,14 +164,19 @@ class ProcurementService
         return DB::transaction(function () use ($procurement) {
 
             $estimateIds = $procurement->items()
+                ->whereNotNull('estimate_id')
                 ->pluck('estimate_id')
                 ->unique()
+                ->filter()
+                ->values()
                 ->toArray();
 
-            Estimate::whereIn('id', $estimateIds)
-                ->update(['status' => 'pending']);
+            if (!empty($estimateIds)) {
+                Estimate::whereIn('id', $estimateIds)->update(['status' => 'pending']);
+            }
 
             $procurement->items()->delete();
+
             return $procurement->delete();
         });
     }
@@ -206,5 +204,30 @@ class ProcurementService
                 'items.estimateItem',
             ]);
         });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Private Helpers
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * مزامنة حالات عروض الأسعار:
+     *  - المختارة  → accepted
+     *  - الباقية لنفس طلب الشراء → rejected
+     */
+    private function syncEstimateStatuses(int $purchaseRequestId, array $selectedIds): void
+    {
+        $selectedIds = array_filter($selectedIds); // إزالة القيم الفارغة
+
+        if (!empty($selectedIds)) {
+            Estimate::whereIn('id', $selectedIds)
+                ->update(['status' => 'accepted']);
+        }
+
+        Estimate::where('purchase_request_id', $purchaseRequestId)
+            ->when(!empty($selectedIds), fn($q) => $q->whereNotIn('id', $selectedIds))
+            ->update(['status' => 'rejected']);
     }
 }

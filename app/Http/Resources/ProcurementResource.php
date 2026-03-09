@@ -17,11 +17,19 @@ class ProcurementResource extends JsonResource
             'status'           => $this->status,
             'notes'            => $this->notes,
 
-            'purchase_request' => $this->whenLoaded('purchaseRequest', fn() => [
-                'id'             => $this->purchaseRequest->id,
-                'request_number' => $this->purchaseRequest->request_number,
-                'title'          => $this->purchaseRequest->title,
-            ]),
+            'purchase_request' => $this->whenLoaded('purchaseRequest', function () {
+                return [
+                    'id'             => $this->purchaseRequest->id,
+                    'request_number' => $this->purchaseRequest->request_number,
+                    'title'          => $this->purchaseRequest->title,
+                    'description'    => $this->purchaseRequest->description,
+
+                    'department' => $this->purchaseRequest->department ? [
+                        'id'   => $this->purchaseRequest->department->id,
+                        'name' => $this->purchaseRequest->department->name,
+                    ] : null,
+                ];
+            }),
 
             'items'            => $this->whenLoaded('items',
                 fn() => ProcurementItemResource::collection($this->items)
